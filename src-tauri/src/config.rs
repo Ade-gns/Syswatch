@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use syswatch_core::alerts::AlertSettings;
 use syswatch_core::fans::Curve;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,6 +25,61 @@ pub struct Settings {
     pub fan_profile: String,
     /// Courbe température → vitesse éditée (°C, %), appliquée en mode automatique.
     pub fan_curve: Vec<(u8, u8)>,
+    pub alerts: AlertSettings,
+    pub widget: WidgetSettings,
+    pub overlay: OverlaySettings,
+    /// Le bouton Fermer réduit dans la zone de notification au lieu de quitter.
+    pub close_to_tray: bool,
+}
+
+/// Widget compact toujours visible (maquette CompactOverlay, réglages de SettingsScreen).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct WidgetSettings {
+    pub enabled: bool,
+    /// « bar », « card » ou « pill ».
+    pub style: String,
+    /// Coin de l'écran : « hg », « hd », « bg », « bd ».
+    pub corner: String,
+    /// Opacité, 30–100 %.
+    pub opacity: u8,
+    pub on_top: bool,
+}
+
+impl Default for WidgetSettings {
+    fn default() -> Self {
+        Self { enabled: false, style: "bar".into(), corner: "hd".into(), opacity: 85, on_top: true }
+    }
+}
+
+/// Overlay du mode jeu (FPS via MangoHud).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct OverlaySettings {
+    /// « Overlay FPS en jeu » : autorise l'affichage par le raccourci ou le menu.
+    pub enabled: bool,
+    /// « standard », « minimal » ou « detailed ».
+    pub style: String,
+    pub corner: String,
+    /// Éléments affichés : fps, cpu, gpu, ram, vram, temp, net, battery.
+    pub items: Vec<String>,
+    /// Cible de FPS : en dessous, point « warn » et mention « sous la cible ».
+    pub fps_target: u32,
+    /// Afficher l'overlay dès qu'un jeu tourne avec MangoHud, le masquer à la fin.
+    pub auto_show: bool,
+}
+
+impl Default for OverlaySettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            style: "standard".into(),
+            corner: "hg".into(),
+            items: ["fps", "cpu", "gpu", "ram", "vram", "temp"].map(String::from).to_vec(),
+            fps_target: 60,
+            auto_show: true,
+        }
+    }
 }
 
 impl Default for Settings {
@@ -37,6 +93,10 @@ impl Default for Settings {
             temp_unit: "c".into(),
             fan_profile: "jeu".into(),
             fan_curve: Curve::preset("jeu").map(|c| c.points).unwrap_or_default(),
+            alerts: AlertSettings::default(),
+            widget: WidgetSettings::default(),
+            overlay: OverlaySettings::default(),
+            close_to_tray: true,
         }
     }
 }
@@ -55,6 +115,23 @@ impl Settings {
         if !matches!(self.fan_profile.as_str(), "silencieux" | "jeu" | "performance") {
             self.fan_profile = "jeu".into();
         }
+        self.alerts = self.alerts.sanitized();
+        let corner = |c: &str| matches!(c, "hg" | "hd" | "bg" | "bd");
+        if !matches!(self.widget.style.as_str(), "bar" | "card" | "pill") {
+            self.widget.style = "bar".into();
+        }
+        if !corner(&self.widget.corner) {
+            self.widget.corner = "hd".into();
+        }
+        self.widget.opacity = self.widget.opacity.clamp(30, 100);
+        if !matches!(self.overlay.style.as_str(), "standard" | "minimal" | "detailed") {
+            self.overlay.style = "standard".into();
+        }
+        if !corner(&self.overlay.corner) {
+            self.overlay.corner = "hg".into();
+        }
+        self.overlay.fps_target = self.overlay.fps_target.clamp(20, 500);
+        self.overlay.items.retain(|i| ["fps", "cpu", "gpu", "ram", "vram", "temp", "net", "battery"].contains(&i.as_str()));
         if (Curve { points: self.fan_curve.clone() }).validate().is_err() {
             self.fan_curve = Curve::preset(&self.fan_profile).map(|c| c.points).unwrap_or_default();
         }

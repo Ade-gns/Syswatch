@@ -23,6 +23,8 @@ pub struct Snapshot {
     pub ac_online: Option<bool>,
     pub network: NetworkSnapshot,
     pub disks: Vec<DiskSnapshot>,
+    /// FPS du jeu en cours (journal MangoHud), si un jeu tourne avec MangoHud.
+    pub fps: Option<crate::fps::FpsSnapshot>,
     /// Mémoire utilisée par SysWatch lui-même (PSS, processus principal + webviews enfants).
     pub self_mem_bytes: Option<u64>,
 }

@@ -1,4 +1,4 @@
-import type { SensorKind } from './types';
+import type { AlertRule, AlertRuleId, SensorKind } from './types';
 
 // Seuils des jauges (README du design, « Jauges et seuils »). Ils deviendront réglables
 // par métrique dans la page Alertes ; ce module reste la source unique des valeurs par défaut.
@@ -6,7 +6,11 @@ import type { SensorKind } from './types';
 export type Level = 'ok' | 'warn' | 'crit';
 export type Thresholds = readonly [warn: number, crit: number];
 
-export const THRESHOLDS = {
+type ThresholdKey = 'load' | 'disk' | 'cpuTemp' | 'gpuTemp' | 'nvmeTemp' | 'tempDefault' | 'batteryWear';
+
+/** Valeurs par défaut du design ; les cinq premières suivent les réglages de la page Alertes
+ *  (`applyThresholds`), si bien que jauges et alertes partagent toujours les mêmes seuils. */
+export const THRESHOLDS: Record<ThresholdKey, Thresholds> = {
   load: [75, 90],
   disk: [80, 90],
   cpuTemp: [80, 90],
@@ -15,7 +19,13 @@ export const THRESHOLDS = {
   tempDefault: [65, 85],
   /** Usure de batterie (perte de capacité) : pas dans le design, valeurs usuelles. */
   batteryWear: [20, 40],
-} as const satisfies Record<string, Thresholds>;
+};
+
+const RULE_TO_KEY: Record<AlertRuleId, ThresholdKey> = { cpuTemp: 'cpuTemp', gpuTemp: 'gpuTemp', ssdTemp: 'nvmeTemp', ram: 'load', disk: 'disk' };
+
+export function applyThresholds(rules: AlertRule[]) {
+  for (const r of rules) THRESHOLDS[RULE_TO_KEY[r.id]] = [r.warn, r.crit];
+}
 
 /** Seuils « bas » : la batterie est en attention sous 20 %, critique sous 10 %. */
 export const BATTERY_LOW: Thresholds = [20, 10];

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Card, Empty } from './components/Card';
 import { PAGES, PageHeader, Sidebar, Titlebar, type PageId } from './components/Shell';
 import { updateSettings, useSettings } from './lib/settings';
+import { useAlerts } from './lib/alerts';
 import { useLive } from './lib/store';
+import { AlertsPage } from './pages/AlertsPage';
 import { BatteryPage } from './pages/BatteryPage';
 import { CpuPage } from './pages/CpuPage';
 import { DisksPage } from './pages/DisksPage';
@@ -16,7 +18,7 @@ import { StartupPage } from './pages/StartupPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 /** Étape de livraison prévue pour chaque page pas encore construite. */
-const PLANNED: Partial<Record<PageId, number>> = { alert: 6 };
+const PLANNED: Partial<Record<PageId, number>> = {};
 
 function Placeholder({ id }: { id: PageId }) {
   const name = PAGES.find(p => p !== '|' && p[0] === id)?.[1] ?? '';
@@ -32,8 +34,9 @@ function Placeholder({ id }: { id: PageId }) {
 
 function SelfMemFooter({ page, onNavigate, collapsed }: { page: PageId; onNavigate: (p: PageId) => void; collapsed: boolean }) {
   const { snap } = useLive();
+  const { unread } = useAlerts();
   return (
-    <Sidebar active={page} onNavigate={onNavigate} alerts={0} selfMem={snap?.selfMemBytes ?? null}
+    <Sidebar active={page} onNavigate={onNavigate} alerts={unread} selfMem={snap?.selfMemBytes ?? null}
       onToggle={() => updateSettings({ sidebarCollapsed: !collapsed })} />
   );
 }
@@ -58,7 +61,7 @@ export function App() {
         <SelfMemFooter page={page} onNavigate={setPage} collapsed={settings.sidebarCollapsed} />
         <main className="sw-main">
           {page === 'home' ? <HomePage /> : page === 'cpu' ? <CpuPage /> : page === 'gpu' ? <GpuPage /> : page === 'ram' ? <MemoryPage /> : page === 'disk' ? <DisksPage />
-            : page === 'bat' ? <BatteryPage /> : page === 'proc' ? <ProcessesPage /> : page === 'net' ? <NetworkPage /> : page === 'boot' ? <StartupPage /> : page === 'fan' ? <FansPage /> : page === 'cog' ? <SettingsPage /> : <Placeholder id={page} />}
+            : page === 'bat' ? <BatteryPage /> : page === 'proc' ? <ProcessesPage /> : page === 'net' ? <NetworkPage /> : page === 'boot' ? <StartupPage /> : page === 'fan' ? <FansPage /> : page === 'alert' ? <AlertsPage /> : page === 'cog' ? <SettingsPage /> : <Placeholder id={page} />}
         </main>
       </div>
     </div>

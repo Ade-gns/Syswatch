@@ -1,11 +1,13 @@
 //! Collecte des mesures système de SysWatch. Tout est lu localement (sysfs, procfs),
 //! sans droits root ; les mesures qui en exigent passent par le service privilégié.
 
+pub mod alerts;
 pub mod battery;
 pub mod cpu;
 pub mod desktop;
 pub mod dirscan;
 pub mod disks;
+pub mod fps;
 pub mod fanctl;
 /// Types partagés avec le service privilégié (modes, courbes).
 pub use syswatch_fans as fans;
@@ -145,6 +147,7 @@ impl Collector {
             ac_online,
             network: self.network.sample(),
             disks: self.disks.sample(),
+            fps: fps::read(),
             self_mem_bytes,
         }
     }

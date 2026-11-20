@@ -1,14 +1,15 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Fenêtre principale : événements, barre de titre personnalisée.",
-  "windows": ["main"],
+  "description": "Fenêtre principale (événements, barre de titre personnalisée), widget compact et overlay (taille ajustée au contenu).",
+  "windows": ["main", "widget", "overlay"],
   "permissions": [
     "core:default",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
     "core:window:allow-start-dragging",
-    "core:window:allow-is-maximized"
+    "core:window:allow-is-maximized",
+    "core:window:allow-set-size"
   ]
 }

@@ -2,12 +2,16 @@
 // les emplacements encore vides (disque, réseau, processus, alertes) se remplissent avec
 // leurs collecteurs, et la grille devient personnalisable à l'étape 7.
 import { Badge, Card, Empty, Legend, LevelBadge, MeterRow, Sec, Widget } from '../components/Card';
+import { Switch } from '../components/Controls';
 import { Spark } from '../components/Gauges';
 import { Icon } from '../components/Icon';
 import { LiveChart } from '../components/LiveChart';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/Shell';
+import { useAlerts } from '../lib/alerts';
 import { be } from '../lib/api';
+import { useOverlayShown } from '../lib/overlay';
+import { AlertRow } from './AlertsPage';
 import { bytes, duration, storage, ghz, NBSP, num, rate, seconds, temp, tempStr, withUnit } from '../lib/format';
 import { gpuStateWord, mainGpu } from '../lib/gpu';
 import { level, NO_THRESHOLD, sensorThresholds, THRESHOLDS, worst } from '../lib/levels';
@@ -70,6 +74,8 @@ function HomeDisk({ snap }: { snap: Snapshot }) {
 
 export function HomePage() {
   const procs = usePoll(() => be().listProcesses(false), 2000).data;
+  const { history } = useAlerts();
+  const [gameMode, setGameMode] = useOverlayShown();
   const { snap, info, times, series, get, historyMs } = useLive();
   const { intervalMs, tempUnit } = useSettings();
   if (!snap || !info) return <Empty>Lecture des capteurs…</Empty>;
@@ -83,7 +89,8 @@ export function HomePage() {
 
   return (
     <>
-      <PageHeader title="Accueil" sub={`${info.osName} · allumé depuis ${duration(snap.uptimeS)} · mise à jour toutes les ${seconds(intervalMs / 1000)}`} />
+      <PageHeader title="Accueil" sub={`${info.osName} · allumé depuis ${duration(snap.uptimeS)} · mise à jour toutes les ${seconds(intervalMs / 1000)}`}
+        actions={<span className="sw-inl"><Icon name="game" size={16} /> Mode jeu <Switch on={gameMode} label="Mode jeu" onChange={setGameMode} /></span>} />
       <div className="sw-grid" style={{ gridTemplateRows: '128px 232px minmax(200px, 1fr)', minHeight: 'calc(128px + 232px + 200px + 2 * var(--space-4))' }}>
         <Widget span={3}>
           <MetricCard label="CPU" pct={cpu.usage} value={cpu.freqMhz != null ? ghz(cpu.freqMhz) : '—'} unit={cpu.freqMhz != null ? 'GHz' : undefined}
@@ -133,7 +140,15 @@ export function HomePage() {
             )}
           </Card>
         </Widget>
-        <div className="c4" />
+        <Widget span={4}>
+          <Card title="Alertes récentes" right={<Sec>{history.length ? 'aujourd’hui' : ''}</Sec>}>
+            {history.length ? (
+              <div className="sw-rows" style={{ justifyContent: 'flex-start', gap: 4 }}>
+                {history.slice(0, 3).map(e => <AlertRow key={e.seq} e={e} />)}
+              </div>
+            ) : <Empty>Aucune alerte : tout est dans les seuils.</Empty>}
+          </Card>
+        </Widget>
       </div>
     </>
   );

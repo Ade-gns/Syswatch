@@ -2,6 +2,7 @@
 // dans ~/.config/syswatch/settings.json puis appliquée (thème, accent, historique).
 import { useSyncExternalStore } from 'react';
 import { applyAppearance } from './accent';
+import { applyThresholds } from './levels';
 import type { Backend } from './api';
 import { setHistorySeconds } from './store';
 import type { Settings } from './types';
@@ -13,6 +14,7 @@ const listeners = new Set<() => void>();
 function apply(s: Settings) {
   current = s;
   applyAppearance(s);
+  applyThresholds(s.alerts.rules);
   setHistorySeconds(s.historyS);
   listeners.forEach(l => l());
 }
@@ -20,6 +22,8 @@ function apply(s: Settings) {
 export function initSettings(backend: Backend, s: Settings) {
   be = backend;
   apply(s);
+  // Réglages changés depuis l'icône de notification (widget activé ou non).
+  backend.onSettingsChanged(apply);
   // Thème « Système » : suivre les changements du bureau.
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
     if (current?.theme === 'system') applyAppearance(current);

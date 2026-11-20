@@ -14,7 +14,13 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 syswatch-core = { path = "../crates/syswatch-core" }
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
+zbus = { version = "5", default-features = false, features = ["blocking-api", "async-io"] }
+
+# Placement du widget et de l'overlay sous Wayland (protocole layer-shell, pris en charge par KWin).
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+gtk-layer-shell = { version = "0.8", features = ["v0_6"] }

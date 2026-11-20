@@ -3,7 +3,7 @@
 // jamais incluse dans l'application compilée.
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { FanMode, FanStatus, FolderScan, ProcessList, Settings, SmartInfo, Snapshot, StartupInfo, SystemInfo } from './types';
+import type { AlertEvent, AlertsView, FanMode, MangohudStatus, FanStatus, FolderScan, ProcessList, Settings, SmartInfo, Snapshot, StartupInfo, SystemInfo } from './types';
 
 export const inTauri = isTauri();
 
@@ -27,6 +27,22 @@ export interface Backend {
   setFanMode(id: string, mode: FanMode): Promise<void>;
   /** power-profiles-daemon : « power-saver », « balanced », « performance ». */
   setPowerProfile(name: string): Promise<void>;
+  getAlerts(): Promise<AlertsView>;
+  markAlertsRead(): Promise<void>;
+  clearAlerts(): Promise<void>;
+  /** Nouvelles alertes (et total non lu), et remise à zéro du compteur. */
+  onAlerts(cb: (e: { events: AlertEvent[]; unread: number }) => void): Promise<() => void>;
+  onAlertsRead(cb: () => void): Promise<() => void>;
+  /** Overlay du mode jeu affiché (raccourci, icône ou interrupteur « Mode jeu »). */
+  setOverlayShown(shown: boolean): Promise<void>;
+  getOverlayShown(): Promise<boolean>;
+  onOverlayShown(cb: (shown: boolean) => void): Promise<() => void>;
+  /** Réglages modifiés hors de l'interface (icône de notification). */
+  onSettingsChanged(cb: (s: Settings) => void): Promise<() => void>;
+  /** Widget/overlay redimensionné : le replacer dans son coin. */
+  reposition(label: string): Promise<void>;
+  mangohudStatus(): Promise<MangohudStatus>;
+  setupMangohud(): Promise<string>;
 }
 
 const tauriBackend: Backend = {
@@ -44,6 +60,18 @@ const tauriBackend: Backend = {
   fanStatus: () => invoke('fan_status'),
   setFanMode: (id, mode) => invoke('set_fan_mode', { id, mode }),
   setPowerProfile: name => invoke('set_power_profile', { name }),
+  getAlerts: () => invoke('get_alerts'),
+  markAlertsRead: () => invoke('mark_alerts_read'),
+  clearAlerts: () => invoke('clear_alerts'),
+  onAlerts: cb => listen<{ events: AlertEvent[]; unread: number }>('alerts', e => cb(e.payload)),
+  onAlertsRead: cb => listen('alerts-read', () => cb()),
+  setOverlayShown: shown => invoke('set_overlay_shown', { shown }),
+  getOverlayShown: () => invoke('get_overlay_shown'),
+  onOverlayShown: cb => listen<boolean>('overlay-shown', e => cb(e.payload)),
+  onSettingsChanged: cb => listen<Settings>('settings-changed', e => cb(e.payload)),
+  reposition: label => invoke('reposition', { label }),
+  mangohudStatus: () => invoke('mangohud_status'),
+  setupMangohud: () => invoke('setup_mangohud'),
 };
 
 /** Message d'erreur lisible : Tauri rejette avec une chaîne, le reste avec une Error. */

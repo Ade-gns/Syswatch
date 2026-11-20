@@ -4,9 +4,19 @@ import type { Backend } from './api';
 import type { AutostartEntry, FanMode, FanStatus, FolderScan, ProcessList, Settings, Snapshot, StartupInfo, SystemInfo } from './types';
 
 const MB = 1024 * 1024;
-let settings: Settings = { theme: 'dark', accent: 'cyan', intervalMs: 1000, historyS: 60, sidebarCollapsed: false, tempUnit: 'c', fanProfile: 'jeu', fanCurve: [[30, 20], [45, 28], [60, 45], [75, 75], [88, 100]] };
+let settings: Settings = { theme: 'dark', accent: 'cyan', intervalMs: 1000, historyS: 60, sidebarCollapsed: false, tempUnit: 'c', fanProfile: 'jeu', fanCurve: [[30, 20], [45, 28], [60, 45], [75, 75], [88, 100]],
+  alerts: { notify: true, notifyWarn: false, rules: [
+    { id: 'cpuTemp', enabled: true, warn: 80, crit: 90 }, { id: 'gpuTemp', enabled: true, warn: 80, crit: 90 }, { id: 'ssdTemp', enabled: true, warn: 65, crit: 75 },
+    { id: 'ram', enabled: true, warn: 75, crit: 90 }, { id: 'disk', enabled: true, warn: 80, crit: 90 },
+  ] },
+  widget: { enabled: false, style: 'bar', corner: 'hd', opacity: 85, onTop: true },
+  overlay: { enabled: true, style: 'standard', corner: 'hg', items: ['fps', 'cpu', 'gpu', 'ram', 'vram', 'temp'], fpsTarget: 60, autoShow: true },
+  closeToTray: true,
+};
 const params = new URLSearchParams(location.search);
 if (params.get('theme') === 'light') settings.theme = 'light';
+if (params.get('ostyle')) settings.overlay.style = params.get('ostyle') as never;
+if (params.get('wstyle')) settings.widget.style = params.get('wstyle') as never;
 
 const info: SystemInfo = {
   osName: 'CachyOS',
@@ -78,6 +88,8 @@ function snap(t: number): Snapshot {
       powerW: 14.2 + Math.random(), voltageV: 15.4, timeLeftS: 11700, chargeLimit: 80, technology: 'Li-ion', manufacturer: 'HP', model: 'Primary',
     }],
     acOnline: false,
+    fps: params.get('fps') === 'low' ? { fps: 44 + Math.random() * 6, frametimeMs: 21.3, low1: 38, frametimePeakMs: 34, game: 'Cyberpunk2077' }
+      : { fps: 140 + Math.random() * 8, frametimeMs: 6.9, low1: 98, frametimePeakMs: 9.4, game: 'Cyberpunk2077' },
     disks: [
       {
         id: 'nvme0n1', model: 'Samsung SSD 980 PRO 2TB', size: 2e12, kind: 'nvme', removable: false, readBps: rd() * 14 * MB, writeBps: wr() * 9 * MB,
@@ -155,6 +167,14 @@ function fanStatus(): FanStatus {
   };
 }
 
+// Alertes de la maquette HomeScreen.
+const now = Math.floor(Date.now() / 1000);
+const at = (h: number, m: number) => { const d = new Date(); d.setHours(h, m, 0, 0); return Math.min(now, Math.floor(d.getTime() / 1000)); };
+const ALERTS = [
+  { seq: 2, key: 'disk:/home', rule: 'disk' as const, level: 'crit' as const, text: 'Disque /home à 91 %', value: 91, t: at(10, 2) },
+  { seq: 1, key: 'ssdTemp', rule: 'ssdTemp' as const, level: 'warn' as const, text: 'SSD NVMe à 69 °C', value: 69, t: at(9, 47) },
+];
+
 export const mockBackend: Backend = {
   getSystemInfo: async () => info,
   getSettings: async () => settings,
@@ -173,6 +193,18 @@ export const mockBackend: Backend = {
   },
   getStartup: async () => startup(),
   fanStatus: async () => fanStatus(),
+  getAlerts: async () => ({ history: ALERTS, unread: 2 }),
+  markAlertsRead: async () => {},
+  clearAlerts: async () => {},
+  onAlerts: async () => () => {},
+  onAlertsRead: async () => () => {},
+  setOverlayShown: async () => {},
+  getOverlayShown: async () => false,
+  onOverlayShown: async () => () => {},
+  onSettingsChanged: async () => () => {},
+  reposition: async () => {},
+  mangohudStatus: async () => ({ installed: true, configured: false, logDir: '~/.local/state/syswatch/mangohud' }),
+  setupMangohud: async () => '~/.config/MangoHud/MangoHud.conf',
   setFanMode: async (_id, mode) => { fanMode = mode; },
   setPowerProfile: async () => {},
   diskSmart: async id => ({

@@ -95,6 +95,7 @@ export interface Snapshot {
   acOnline: boolean | null;
   network: NetworkSnapshot;
   disks: DiskSnapshot[];
+  fps: FpsSnapshot | null;
   selfMemBytes: number | null;
 }
 
@@ -263,7 +264,24 @@ export interface Settings {
   tempUnit: 'c' | 'f';
   fanProfile: FanProfile;
   fanCurve: [number, number][];
+  alerts: AlertSettings;
+  widget: WidgetSettings;
+  overlay: OverlaySettings;
+  closeToTray: boolean;
 }
+
+export type Corner = 'hg' | 'hd' | 'bg' | 'bd';
+export interface WidgetSettings { enabled: boolean; style: 'bar' | 'card' | 'pill'; corner: Corner; opacity: number; onTop: boolean }
+export type OverlayItem = 'fps' | 'cpu' | 'gpu' | 'ram' | 'vram' | 'temp' | 'net' | 'battery';
+export interface OverlaySettings { enabled: boolean; style: 'standard' | 'minimal' | 'detailed'; corner: Corner; items: OverlayItem[]; fpsTarget: number; autoShow: boolean }
+
+export type AlertRuleId = 'cpuTemp' | 'gpuTemp' | 'ssdTemp' | 'ram' | 'disk';
+export interface AlertRule { id: AlertRuleId; enabled: boolean; warn: number; crit: number }
+export interface AlertSettings { notify: boolean; notifyWarn: boolean; rules: AlertRule[] }
+export interface AlertEvent { seq: number; key: string; rule: AlertRuleId; level: 'ok' | 'warn' | 'crit'; text: string; value: number; t: number }
+export interface AlertsView { history: AlertEvent[]; unread: number }
+export interface FpsSnapshot { fps: number; frametimeMs: number; low1: number | null; frametimePeakMs: number | null; game: string }
+export interface MangohudStatus { installed: boolean; configured: boolean; logDir: string }
 
 export type FanProfile = 'silencieux' | 'jeu' | 'performance';
 export type FanMode =

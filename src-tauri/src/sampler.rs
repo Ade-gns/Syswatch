@@ -1,11 +1,13 @@
 //! Échantillonneur adaptatif : un thread qui collecte et émet un `snapshot` à chaque tick.
-//! Fenêtre visible : intervalle choisi par l'utilisateur. Fenêtre masquée ou réduite :
-//! au moins 5 s, pour rester discret (les alertes continuent d'être évaluées).
+//! Fenêtre, widget ou overlay visible : intervalle choisi par l'utilisateur. Sinon (fenêtre
+//! masquée dans la zone de notification ou réduite) : au moins 5 s, pour rester discret ;
+//! les alertes continuent d'être évaluées à chaque mesure (`hook`).
 
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use syswatch_core::model::Snapshot;
 use syswatch_core::Collector;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -26,7 +28,10 @@ impl SamplerHandle {
     }
 }
 
-pub fn spawn(app: AppHandle, mut collector: Collector, interval: Duration) -> SamplerHandle {
+/// Traitement appelé après chaque mesure (alertes, info-bulle de l'icône).
+pub type Hook = Box<dyn FnMut(&AppHandle, &Snapshot) + Send>;
+
+pub fn spawn(app: AppHandle, mut collector: Collector, interval: Duration, mut hook: Hook) -> SamplerHandle {
     let (tx, rx) = mpsc::channel::<Ctl>();
     thread::Builder::new()
         .name("syswatch-sampler".into())
@@ -38,7 +43,8 @@ pub fn spawn(app: AppHandle, mut collector: Collector, interval: Duration) -> Sa
                 if app.emit("snapshot", &snap).is_err() {
                     break; // application en cours de fermeture
                 }
-                let visible = doc_visible && window_shown(&app);
+                hook(&app, &snap);
+                let visible = (doc_visible && window_shown(&app)) || app.get_webview_window(crate::windows::WIDGET).is_some() || app.get_webview_window(crate::windows::OVERLAY).is_some();
                 let wait = if visible { interval } else { HIDDEN_MIN.max(interval * 5) };
                 let deadline = Instant::now() + wait;
                 // Attente interruptible : un changement de réglage ou un retour au premier plan
