@@ -9,7 +9,9 @@ use std::time::Duration;
 use config::Settings;
 use sampler::{Ctl, SamplerHandle};
 use syswatch_core::model::SystemInfo;
+use syswatch_core::dirscan::{DirScanner, FolderScan};
 use syswatch_core::procs::{self, ProcCollector, ProcessList};
+use syswatch_core::smart::{self, SmartInfo};
 use syswatch_core::startup::{self, StartupInfo};
 use syswatch_core::Collector;
 use tauri::{Manager, State};
@@ -20,6 +22,8 @@ struct AppState {
     sampler: SamplerHandle,
     /// Collecte des processus, à la demande (pages Processus, Réseau, widget Top processus).
     procs: Arc<Mutex<ProcCollector>>,
+    /// Analyses d'espace par dossier en cours ou récentes.
+    dirscan: DirScanner,
 }
 
 /// Exécute un travail bloquant (lecture de /proc, sous-processus) hors du thread principal.
@@ -42,6 +46,19 @@ async fn terminate(pids: Vec<u32>) -> Result<(), String> {
         Some((pid, why)) if failed.len() == 1 => Err(format!("Processus {pid} non fermé : {why}")),
         Some((_, why)) => Err(format!("{} processus non fermés : {why}", failed.len())),
     }
+}
+
+#[tauri::command]
+async fn disk_smart(id: String) -> Result<SmartInfo, String> {
+    blocking(move || smart::read(&id)).await
+}
+
+/// Lance l'analyse d'espace par dossier si besoin et renvoie son état (à rappeler tant
+/// que `running` est vrai).
+#[tauri::command]
+async fn scan_folders(state: State<'_, AppState>, disk: String, force: bool) -> Result<FolderScan, String> {
+    let s = state.dirscan.clone();
+    blocking(move || s.scan(&disk, force)).await?
 }
 
 #[tauri::command]
@@ -89,10 +106,10 @@ pub fn run() {
             let collector = Collector::new().ok_or("Impossible d'initialiser la collecte système")?;
             let info = collector.system_info();
             let sampler = sampler::spawn(app.handle().clone(), collector, Duration::from_millis(settings.interval_ms));
-            app.manage(AppState { info, settings: Mutex::new(settings), sampler, procs: Arc::new(Mutex::new(ProcCollector::new())) });
+            app.manage(AppState { info, settings: Mutex::new(settings), sampler, procs: Arc::new(Mutex::new(ProcCollector::new())), dirscan: DirScanner::default() });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_system_info, get_settings, save_settings, set_visible, list_processes, terminate, get_startup, set_autostart])
+        .invoke_handler(tauri::generate_handler![get_system_info, get_settings, save_settings, set_visible, list_processes, terminate, get_startup, set_autostart, disk_smart, scan_folders])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de SysWatch");
 }

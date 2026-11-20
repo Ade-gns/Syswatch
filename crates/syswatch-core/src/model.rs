@@ -22,6 +22,7 @@ pub struct Snapshot {
     /// Secteur branché ; `None` sur une machine sans adaptateur détecté.
     pub ac_online: Option<bool>,
     pub network: NetworkSnapshot,
+    pub disks: Vec<DiskSnapshot>,
     /// Mémoire utilisée par SysWatch lui-même (PSS, processus principal + webviews enfants).
     pub self_mem_bytes: Option<u64>,
 }
@@ -313,4 +314,47 @@ pub struct NetworkSnapshot {
     pub ping_target: Option<String>,
     pub wifi: Option<WifiInfo>,
     pub interfaces: Vec<IfaceSnapshot>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DiskKind {
+    Nvme,
+    Ssd,
+    Hdd,
+    Usb,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MountSnapshot {
+    /// Partition ou volume (« nvme0n1p2 », « dm-0 »).
+    pub device: String,
+    pub fstype: String,
+    /// Points de montage de ce système de fichiers (plusieurs pour les sous-volumes btrfs).
+    pub targets: Vec<String>,
+    pub total: u64,
+    pub used: u64,
+    /// Espace utilisable par un utilisateur non root.
+    pub available: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiskSnapshot {
+    /// Nom noyau (« nvme0n1 », « sda »).
+    pub id: String,
+    pub model: Option<String>,
+    pub size: u64,
+    pub kind: DiskKind,
+    pub removable: bool,
+    /// Octets/s.
+    pub read_bps: f64,
+    pub write_bps: f64,
+    /// Octets depuis le démarrage.
+    pub read_total: u64,
+    pub write_total: u64,
+    pub temp_c: Option<f32>,
+    /// Systèmes de fichiers montés, le plus grand d'abord.
+    pub mounts: Vec<MountSnapshot>,
 }

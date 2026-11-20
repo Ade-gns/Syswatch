@@ -4,6 +4,8 @@
 pub mod battery;
 pub mod cpu;
 pub mod desktop;
+pub mod dirscan;
+pub mod disks;
 pub mod gpu;
 pub mod hwmon;
 pub mod memory;
@@ -12,6 +14,7 @@ pub mod network;
 pub mod procs;
 pub mod selfmem;
 pub mod sensors;
+pub mod smart;
 pub mod sockdiag;
 pub mod startup;
 pub mod sysfs;
@@ -22,6 +25,7 @@ use sysinfo::System;
 
 use battery::Batteries;
 use cpu::CpuCollector;
+use disks::Disks;
 use gpu::Gpus;
 use network::Network;
 use model::{BatterySnapshot, Capabilities, Feature, FanReading, GpuSnapshot, SensorReading, Snapshot, SystemInfo};
@@ -65,6 +69,7 @@ pub struct Collector {
     gpus: Gpus,
     batteries: Batteries,
     network: Network,
+    disks: Disks,
     self_mem: SelfMem,
     self_mem_tier: Tier<Option<u64>>,
     gpu_tier: Tier<GpuRead>,
@@ -81,6 +86,7 @@ impl Collector {
             gpus,
             batteries: Batteries::discover(),
             network: Network::new(),
+            disks: Disks::new(),
             self_mem: SelfMem::new(),
             self_mem_tier: Tier::new(SELF_MEM_EVERY),
             gpu_tier: Tier::new(GPU_EVERY),
@@ -135,6 +141,7 @@ impl Collector {
             batteries,
             ac_online,
             network: self.network.sample(),
+            disks: self.disks.sample(),
             self_mem_bytes,
         }
     }

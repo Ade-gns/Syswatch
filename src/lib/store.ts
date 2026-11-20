@@ -29,6 +29,7 @@ const emit = () => {
 };
 
 export const gpuKey = (id: string, m: 'usage' | 'temp' | 'power' | 'vram') => `gpu:${id}:${m}`;
+export const diskKey = (id: string, m: 'read' | 'write' | 'temp') => `disk:${id}:${m}`;
 
 export function setSystemInfo(info: SystemInfo) {
   state.info = info;
@@ -72,6 +73,11 @@ function extract(s: Snapshot): Record<string, number> {
     v[gpuKey(g.id, 'temp')] = orNaN(g.tempC);
     v[gpuKey(g.id, 'power')] = orNaN(g.powerW);
     v[gpuKey(g.id, 'vram')] = g.vramUsed != null && g.vramTotal ? pct(g.vramUsed, g.vramTotal) : NaN;
+  }
+  for (const d of s.disks) {
+    v[diskKey(d.id, 'read')] = d.readBps;
+    v[diskKey(d.id, 'write')] = d.writeBps;
+    v[diskKey(d.id, 'temp')] = orNaN(d.tempC);
   }
   v.netRx = s.network.rxBps;
   v.netTx = s.network.txBps;

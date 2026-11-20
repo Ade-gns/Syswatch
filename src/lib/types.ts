@@ -94,7 +94,49 @@ export interface Snapshot {
   batteries: BatterySnapshot[];
   acOnline: boolean | null;
   network: NetworkSnapshot;
+  disks: DiskSnapshot[];
   selfMemBytes: number | null;
+}
+
+export type DiskKind = 'nvme' | 'ssd' | 'hdd' | 'usb';
+export interface MountSnapshot { device: string; fstype: string; targets: string[]; total: number; used: number; available: number }
+export interface DiskSnapshot {
+  id: string;
+  model: string | null;
+  size: number;
+  kind: DiskKind;
+  removable: boolean;
+  readBps: number;
+  writeBps: number;
+  readTotal: number;
+  writeTotal: number;
+  tempC: number | null;
+  mounts: MountSnapshot[];
+}
+
+export type SmartStatus = 'ok' | 'warn' | 'crit';
+export interface SmartAttr { id: string; name: string; value: string; threshold: string; status: SmartStatus }
+export interface SmartInfo {
+  available: boolean;
+  detail: string | null;
+  protocol: 'NVMe' | 'ATA' | null;
+  health: SmartStatus | null;
+  remainingPct: number | null;
+  wearPct: number | null;
+  powerOnHours: number | null;
+  tempC: number | null;
+  attributes: SmartAttr[];
+  updatedS: number | null;
+}
+
+export interface FolderScan {
+  disk: string;
+  root: string;
+  running: boolean;
+  files: number;
+  entries: { name: string; bytes: number }[];
+  denied: number;
+  finishedS: number | null;
 }
 
 export type IfaceKind = 'wifi' | 'ethernet' | 'other' | 'virtual' | 'loopback';

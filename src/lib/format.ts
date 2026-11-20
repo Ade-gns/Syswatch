@@ -41,6 +41,24 @@ export function bytes(b: number, opts: { trim?: boolean } = {}): Parts {
 
 export const bytesStr = (b: number) => withUnit(...bytes(b));
 
+/** Capacités de stockage en unités décimales, comme les fabricants et la maquette Disques
+ *  (un disque de 2 To affiche « 2 To ») : « 1,82 To », « 380 Go », « 9,6 Go ». */
+const STORAGE = ['o', 'Ko', 'Mo', 'Go', 'To', 'Po'];
+export function storage(b: number, opts: { unit?: string; trim?: boolean } = {}): Parts {
+  let i = 0;
+  let v = Math.max(0, b);
+  const target = opts.unit ? STORAGE.indexOf(opts.unit) : -1;
+  while (target >= 0 ? i < target : v >= 1000 && i < STORAGE.length - 1) {
+    v /= 1000;
+    i++;
+  }
+  const u = STORAGE[i];
+  let d = u === 'To' || u === 'Po' ? (v < 10 ? 2 : 1) : u === 'Go' ? (v < 10 ? 1 : 0) : 0;
+  if (opts.trim && Math.abs(v - Math.round(v)) < 0.05) d = 0;
+  return [num(v, d), u];
+}
+export const storageStr = (b: number, opts?: { unit?: string; trim?: boolean }) => withUnit(...storage(b, opts));
+
 const RATE = ['o/s', 'Ko/s', 'Mo/s', 'Go/s'];
 /** Débit en octets/s : « 42,8 Mo/s », « 412 Mo/s », « 0 o/s ». */
 export function rate(bps: number): Parts {

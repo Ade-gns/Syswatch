@@ -8,13 +8,13 @@ import { LiveChart } from '../components/LiveChart';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/Shell';
 import { be } from '../lib/api';
-import { bytes, duration, ghz, NBSP, num, rate, seconds, temp, tempStr, withUnit } from '../lib/format';
+import { bytes, duration, storage, ghz, NBSP, num, rate, seconds, temp, tempStr, withUnit } from '../lib/format';
 import { gpuStateWord, mainGpu } from '../lib/gpu';
-import { level, NO_THRESHOLD, sensorThresholds, worst } from '../lib/levels';
+import { level, NO_THRESHOLD, sensorThresholds, THRESHOLDS, worst } from '../lib/levels';
 import { usePoll } from '../lib/poll';
 import { useSettings } from '../lib/settings';
 import { gpuKey, tail, useLive } from '../lib/store';
-import type { NetworkSnapshot, ProcessList, SensorKind, SensorReading } from '../lib/types';
+import type { NetworkSnapshot, ProcessList, SensorKind, SensorReading, Snapshot } from '../lib/types';
 
 const SPARK = 40;
 /** Une ligne par famille, dans l'ordre de la maquette : CPU, GPU, SSD, carte mère, batterie. */
@@ -58,6 +58,16 @@ function NetCard({ n, rx }: { n: NetworkSnapshot; rx: number[] }) {
   );
 }
 
+/** Carte « Disque /home » de la maquette : système de fichiers de /home, sinon /. */
+function HomeDisk({ snap }: { snap: Snapshot }) {
+  const mounts = snap.disks.flatMap(d => d.mounts);
+  const m = mounts.find(x => x.targets.includes('/home')) ?? mounts.find(x => x.targets.includes('/')) ?? mounts[0];
+  if (!m) return <MetricCard kind="text" label="Disque" pct={0} value="—" sub="Aucun montage" />;
+  const target = m.targets.includes('/home') ? '/home' : m.targets[0];
+  const [u, uu] = storage(m.used);
+  return <MetricCard kind="bar" label={`Disque ${target}`} pct={m.total ? (m.used / m.total) * 100 : 0} th={THRESHOLDS.disk} value={u} unit={uu} sub={`/${NBSP}${storage(m.total, { trim: true }).join(NBSP)}`} />;
+}
+
 export function HomePage() {
   const procs = usePoll(() => be().listProcesses(false), 2000).data;
   const { snap, info, times, series, get, historyMs } = useLive();
@@ -90,7 +100,7 @@ export function HomePage() {
         <Widget span={3}>
           <MetricCard label="Mémoire" pct={ramPct} value={used} unit={usedUnit} sub={`/${NBSP}${bytes(memory.total, { trim: true }).join(NBSP)}`} series={tail(series.ram, SPARK)} />
         </Widget>
-        <div className="c3" />
+        <Widget span={3}><HomeDisk snap={snap} /></Widget>
 
         <Widget span={8}>
           <Card title="Activité en temps réel" right={<Legend items={[{ name: 'CPU', color: 'var(--accent)' }, ...(gpu ? [{ name: 'GPU', color: 'var(--series-2)', style: 'd' as const }] : []), { name: 'Mémoire', color: 'var(--series-3)', style: 't' }]} />}>

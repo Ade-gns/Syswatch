@@ -3,7 +3,7 @@
 // jamais incluse dans l'application compilée.
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { ProcessList, Settings, Snapshot, StartupInfo, SystemInfo } from './types';
+import type { FolderScan, ProcessList, Settings, SmartInfo, Snapshot, StartupInfo, SystemInfo } from './types';
 
 export const inTauri = isTauri();
 
@@ -19,6 +19,9 @@ export interface Backend {
   terminate(pids: number[]): Promise<void>;
   getStartup(): Promise<StartupInfo>;
   setAutostart(id: string, enabled: boolean): Promise<void>;
+  diskSmart(id: string): Promise<SmartInfo>;
+  /** Lance l'analyse d'espace par dossier si besoin ; à rappeler tant que `running`. */
+  scanFolders(disk: string, force: boolean): Promise<FolderScan>;
 }
 
 const tauriBackend: Backend = {
@@ -31,6 +34,8 @@ const tauriBackend: Backend = {
   terminate: pids => invoke('terminate', { pids }),
   getStartup: () => invoke('get_startup'),
   setAutostart: (id, enabled) => invoke('set_autostart', { id, enabled }),
+  diskSmart: id => invoke('disk_smart', { id }),
+  scanFolders: (disk, force) => invoke('scan_folders', { disk, force }),
 };
 
 /** Message d'erreur lisible : Tauri rejette avec une chaîne, le reste avec une Error. */

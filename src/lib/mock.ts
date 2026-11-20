@@ -1,8 +1,9 @@
 // Source simulée, UNIQUEMENT pour l'aperçu navigateur en développement (npm run dev hors Tauri).
 // Reprend les valeurs des maquettes pour comparer le rendu. Jamais chargée dans l'application.
 import type { Backend } from './api';
-import type { AutostartEntry, ProcessList, Settings, Snapshot, StartupInfo, SystemInfo } from './types';
+import type { AutostartEntry, FolderScan, ProcessList, Settings, Snapshot, StartupInfo, SystemInfo } from './types';
 
+const MB = 1024 * 1024;
 let settings: Settings = { theme: 'dark', accent: 'cyan', intervalMs: 1000, historyS: 60, sidebarCollapsed: false, tempUnit: 'c' };
 const params = new URLSearchParams(location.search);
 if (params.get('theme') === 'light') settings.theme = 'light';
@@ -31,6 +32,7 @@ const walk = (base: number, amp: number) => {
   return () => (v = Math.max(0, Math.min(100, v + (Math.random() - 0.5) * amp + (base - v) * 0.12)));
 };
 const cores = [34, 28, 41, 22, 78, 36, 19, 31, 45, 25, 93, 30, 27, 38, 21, 33].map(b => walk(b, 6));
+const rd = walk(30, 25), wr = walk(15, 12);
 const cpu = walk(34, 12), ram = walk(82, 1), gpu = walk(12, 8), bat = walk(64, 0.2), dl = walk(40, 14);
 
 function snap(t: number): Snapshot {
@@ -76,6 +78,13 @@ function snap(t: number): Snapshot {
       powerW: 14.2 + Math.random(), voltageV: 15.4, timeLeftS: 11700, chargeLimit: 80, technology: 'Li-ion', manufacturer: 'HP', model: 'Primary',
     }],
     acOnline: false,
+    disks: [
+      {
+        id: 'nvme0n1', model: 'Samsung SSD 980 PRO 2TB', size: 2e12, kind: 'nvme', removable: false, readBps: rd() * 14 * MB, writeBps: wr() * 9 * MB,
+        readTotal: 0, writeTotal: 0, tempC: 44, mounts: [{ device: 'nvme0n1p2', fstype: 'btrfs', targets: ['/', '/home'], total: 2e12, used: 1.82e12, available: 0.18e12 }],
+      },
+      { id: 'sda', model: 'WDC WD20EZRZ', size: 2000398934016, kind: 'hdd', removable: false, readBps: 0, writeBps: 0, readTotal: 0, writeTotal: 0, tempC: 36, mounts: [{ device: 'sda1', fstype: 'ext4', targets: ['/mnt/donnees'], total: 1800 * 1024 ** 3, used: 900 * 1024 ** 3, available: 900 * 1024 ** 3 }] },
+    ],
     network: {
       rxBps: Math.max(0, dl()) * 1024 * 1024, txBps: (3 + Math.random()) * 1024 * 1024, connected: true, defaultIface: 'wlan0', gateway: '192.168.1.1',
       dns: ['192.168.1.1'], pingMs: 14 + Math.random() * 3, pingTarget: '192.168.1.1',
@@ -91,7 +100,6 @@ function snap(t: number): Snapshot {
 }
 
 // Processus de la maquette ProcessTable (SW.PROCS), en octets et octets/s.
-const MB = 1024 * 1024;
 const PROCS: [string, number, string | null, number, number, number, number][] = [
   ['firefox', 4128, 'firefox', 12.4, 2310, 0.3, 4.2], ['steam', 3011, 'steam', 6.1, 612, 1.2, 18.4], ['code', 5530, 'code', 4.8, 940, 0.1, 0],
   ['kwin_wayland', 1204, null, 3.2, 310, 0, 0], ['plasmashell', 1260, null, 2.1, 420, 0, 0], ['discord', 6102, 'discord', 1.9, 530, 0, 0.2],
@@ -143,6 +151,17 @@ export const mockBackend: Backend = {
     pids.forEach(p => alive.delete(p));
   },
   getStartup: async () => startup(),
+  diskSmart: async id => ({
+    available: true, detail: 'udisks2', protocol: id.startsWith('nvme') ? 'NVMe' : 'ATA', health: 'ok', remainingPct: 98, wearPct: 2, powerOnHours: 4212, tempC: 44, updatedS: Math.floor(Date.now() / 1000) - 12,
+    attributes: [
+      ['00', 'Avertissement critique', '0', '—', 'ok'], ['03', 'Réserve disponible', '100 %', '10 %', 'ok'], ['05', 'Usure (utilisé)', '2 %', '100 %', 'ok'],
+      ['80', 'Heures sous tension', '4 212 h', '—', 'ok'], ['90', 'Arrêts non sécurisés', '11', '—', 'warn'], ['A0', 'Erreurs média', '0', '—', 'ok'],
+    ].map(([i, name, value, threshold, status]) => ({ id: i, name, value, threshold, status: status as 'ok' | 'warn' })),
+  }),
+  scanFolders: async (disk): Promise<FolderScan> => ({
+    disk, root: '~', running: false, files: 412_000, denied: 0, finishedS: Math.floor(Date.now() / 1000),
+    entries: [['~/Jeux/Steam', 1100], ['~/Vidéos', 380], ['~/.cache', 96], ['~/Documents', 64], ['~/Projets', 41], ['~/Images', 12]].map(([name, g]) => ({ name: name as string, bytes: (g as number) * 1e9 })),
+  }),
   setAutostart: async (id, enabled) => {
     autostart = autostart.map(a => (a.id === id ? { ...a, enabled } : a));
   },
