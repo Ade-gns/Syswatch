@@ -158,7 +158,12 @@ fn set_launch_at_login(enabled: bool) -> Result<(), String> {
             _ => Ok(()),
         };
     }
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    // AppImage : current_exe() pointe dans le montage temporaire (/tmp/.mount_…), qui change
+    // à chaque lancement ; $APPIMAGE est le chemin du fichier lui-même.
+    let exe = match std::env::var_os("APPIMAGE") {
+        Some(p) => std::path::PathBuf::from(p),
+        None => std::env::current_exe().map_err(|e| e.to_string())?,
+    };
     let entry = format!(
         "[Desktop Entry]\nType=Application\nName=SysWatch\nComment=Surveillance du PC, réduit dans la zone de notification\nExec=\"{}\" --tray\nIcon=syswatch\nTerminal=false\nX-GNOME-Autostart-enabled=true\n",
         exe.display()

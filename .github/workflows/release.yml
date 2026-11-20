@@ -59,3 +59,17 @@ jobs:
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
+
+      # Noms fixes, pour un lien de téléchargement stable :
+      #   https://github.com/Ade-gns/Syswatch/releases/latest/download/SysWatch-x86_64.AppImage
+      # et le service des ventilateurs pour scripts/install.sh (même arborescence que le dépôt).
+      - name: Fichiers à nom fixe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          app=$(find target/release/bundle/appimage -maxdepth 1 -name '*.AppImage' | head -1)
+          cp "$app" SysWatch-x86_64.AppImage
+          tar -czf syswatch-helper-x86_64.tar.gz target/release/syswatch-helper scripts/install-helper.sh \
+            packaging/syswatch-helper.service packaging/dev.syswatch.Helper1.service \
+            packaging/dev.syswatch.Helper1.conf packaging/dev.syswatch.policy packaging/README-helper.md
+          gh release upload "$GITHUB_REF_NAME" SysWatch-x86_64.AppImage syswatch-helper-x86_64.tar.gz --clobber

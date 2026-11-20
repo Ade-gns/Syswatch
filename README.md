@@ -3,11 +3,24 @@
 Surveillance totale du PC sous Linux (testé sur CachyOS et Kubuntu) : CPU, GPU, mémoire,
 disques et SMART, réseau, processus, batterie, ventilateurs, démarrage, alertes, widget
 compact et overlay du mode jeu. Tout reste local : aucune donnée n'est envoyée sur le
-réseau (seul un ping ICMP vers la passerelle locale mesure la latence).
+réseau (seul un ping ICMP vers la passerelle locale mesure la latence ; la recherche de
+mises à jour sur GitHub n'a lieu que si on l'active ou la lance).
 
 Stack : Tauri 2, React, TypeScript, Tailwind 4 ; backend Rust. Le design (tokens,
 maquettes) vient du dossier `SysWatch design/` ; `npm run sync-tokens` régénère les
 variables CSS à partir de `tokens.json`.
+
+## Installer (AppImage)
+
+Une commande installe les prérequis manquants (FUSE, udisks2), la dernière AppImage dans
+`~/.local/bin`, l'entrée de menu, et propose le service des ventilateurs :
+
+    curl -fsSL https://raw.githubusercontent.com/Ade-gns/Syswatch/main/scripts/install.sh | bash
+
+Ou téléchargement direct de l'AppImage (à rendre exécutable) :
+<https://github.com/Ade-gns/Syswatch/releases/latest/download/SysWatch-x86_64.AppImage>
+
+Désinstaller : `curl -fsSL https://raw.githubusercontent.com/Ade-gns/Syswatch/main/scripts/install.sh | bash -s -- --uninstall`
 
 ## Prérequis
 
