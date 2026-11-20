@@ -102,7 +102,12 @@ export function FansPage() {
       updateSettings({ fanProfile: p, fanCurve: PRESETS[p] });
       if (helperOk) applyAll(curveMode(PRESETS[p]), { mode: 'auto' });
     } else if (ppd) {
-      run(() => be().setPowerProfile(PPD[p]));
+      // Le profil d'énergie ne touche pas aux ventilateurs : sans repasser en Auto, un
+      // « Silencieux » choisi après « Fort » laisserait tourner à pleine vitesse.
+      run(async () => {
+        await be().setPowerProfile(PPD[p]);
+        if (helperOk) for (const c of channels) await be().setFanMode(c.id, { mode: 'auto' });
+      });
     }
   };
 
