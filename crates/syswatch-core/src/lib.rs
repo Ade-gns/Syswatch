@@ -6,6 +6,9 @@ pub mod cpu;
 pub mod desktop;
 pub mod dirscan;
 pub mod disks;
+pub mod fanctl;
+/// Types partagés avec le service privilégié (modes, courbes).
+pub use syswatch_fans as fans;
 pub mod gpu;
 pub mod hwmon;
 pub mod memory;

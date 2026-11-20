@@ -3646,6 +3646,26 @@ dependencies = [
  "serde",
  "serde_json",
  "sysinfo",
+ "syswatch-fans",
+ "zbus",
+]
+
+[[package]]
+name = "syswatch-fans"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "syswatch-helper"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "serde",
+ "serde_json",
+ "syswatch-fans",
  "zbus",
 ]
 

@@ -10,6 +10,8 @@ use config::Settings;
 use sampler::{Ctl, SamplerHandle};
 use syswatch_core::model::SystemInfo;
 use syswatch_core::dirscan::{DirScanner, FolderScan};
+use syswatch_core::fanctl::{self, FanStatus};
+use syswatch_core::fans::Mode;
 use syswatch_core::procs::{self, ProcCollector, ProcessList};
 use syswatch_core::smart::{self, SmartInfo};
 use syswatch_core::startup::{self, StartupInfo};
@@ -62,6 +64,21 @@ async fn scan_folders(state: State<'_, AppState>, disk: String, force: bool) -> 
 }
 
 #[tauri::command]
+async fn fan_status() -> Result<FanStatus, String> {
+    blocking(fanctl::status).await
+}
+
+#[tauri::command]
+async fn set_fan_mode(id: String, mode: Mode) -> Result<(), String> {
+    blocking(move || fanctl::set_mode(&id, &mode)).await?
+}
+
+#[tauri::command]
+async fn set_power_profile(name: String) -> Result<(), String> {
+    blocking(move || fanctl::set_power_profile(&name)).await?
+}
+
+#[tauri::command]
 async fn get_startup() -> Result<StartupInfo, String> {
     blocking(startup::read).await
 }
@@ -109,7 +126,7 @@ pub fn run() {
             app.manage(AppState { info, settings: Mutex::new(settings), sampler, procs: Arc::new(Mutex::new(ProcCollector::new())), dirscan: DirScanner::default() });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_system_info, get_settings, save_settings, set_visible, list_processes, terminate, get_startup, set_autostart, disk_smart, scan_folders])
+        .invoke_handler(tauri::generate_handler![get_system_info, get_settings, save_settings, set_visible, list_processes, terminate, get_startup, set_autostart, disk_smart, scan_folders, fan_status, set_fan_mode, set_power_profile])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de SysWatch");
 }

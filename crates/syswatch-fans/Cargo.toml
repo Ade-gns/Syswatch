@@ -1,0 +1,12 @@
+[package]
+name = "syswatch-fans"
+description = "Découverte des ventilateurs hwmon et courbes température → vitesse (partagé par l'app et le service root)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

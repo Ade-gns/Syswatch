@@ -1,0 +1,6 @@
+# Activation D-Bus : le bus démarre le service systemd à la première requête.
+[D-BUS Service]
+Name=dev.syswatch.Helper1
+Exec=/bin/false
+User=root
+SystemdService=syswatch-helper.service

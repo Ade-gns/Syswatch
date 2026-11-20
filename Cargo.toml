@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "crates/syswatch-core"]
+members = ["src-tauri", "crates/syswatch-core", "crates/syswatch-fans", "crates/syswatch-helper"]
 resolver = "3"
 
 [workspace.package]

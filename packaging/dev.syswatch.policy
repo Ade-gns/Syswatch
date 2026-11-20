@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>SysWatch</vendor>
+  <action id="dev.syswatch.fan-control">
+    <description>Control fan speed</description>
+    <description xml:lang="fr">Piloter la vitesse des ventilateurs</description>
+    <message>Authentication is required to change fan speed</message>
+    <message xml:lang="fr">Une authentification est nécessaire pour changer la vitesse des ventilateurs</message>
+    <defaults>
+      <!-- Session locale active : sans mot de passe (comme power-profiles-daemon).
+           Session distante ou inactive : mot de passe administrateur. -->
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

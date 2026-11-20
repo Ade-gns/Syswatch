@@ -1,10 +1,10 @@
 // Source simulée, UNIQUEMENT pour l'aperçu navigateur en développement (npm run dev hors Tauri).
 // Reprend les valeurs des maquettes pour comparer le rendu. Jamais chargée dans l'application.
 import type { Backend } from './api';
-import type { AutostartEntry, FolderScan, ProcessList, Settings, Snapshot, StartupInfo, SystemInfo } from './types';
+import type { AutostartEntry, FanMode, FanStatus, FolderScan, ProcessList, Settings, Snapshot, StartupInfo, SystemInfo } from './types';
 
 const MB = 1024 * 1024;
-let settings: Settings = { theme: 'dark', accent: 'cyan', intervalMs: 1000, historyS: 60, sidebarCollapsed: false, tempUnit: 'c' };
+let settings: Settings = { theme: 'dark', accent: 'cyan', intervalMs: 1000, historyS: 60, sidebarCollapsed: false, tempUnit: 'c', fanProfile: 'jeu', fanCurve: [[30, 20], [45, 28], [60, 45], [75, 75], [88, 100]] };
 const params = new URLSearchParams(location.search);
 if (params.get('theme') === 'light') settings.theme = 'light';
 
@@ -68,7 +68,7 @@ function snap(t: number): Snapshot {
       { id: 'acpitz/temp1', label: 'Zone ACPI', kind: 'board', valueC: 52, critC: null },
       { id: 'BAT0/temp1', label: 'Batterie', kind: 'battery', valueC: 34, critC: null },
     ],
-    fans: [{ id: 'hp/fan1', label: 'Ventilateur 1', rpm: 2840, pct: null }],
+    fans: [{ id: 'nct6775/fan1', label: 'Ventilateur CPU', rpm: 2840, pct: 52 }, { id: 'nct6775/fan2', label: 'Ventilateur GPU', rpm: 2610, pct: 48 }],
     gpus: [
       { id: '0000:01:00.0', state: 'active', detail: null, usage: gpu(), tempC: 48, powerW: 21.4, coreMhz: 1485, memMhz: 8001, vramUsed: 1.2 * 1024 ** 3, vramTotal: 8 * 1024 ** 3, fanPct: null, fanRpm: null, processes: 3 },
       { id: '0000:65:00.0', state: 'active', detail: null, usage: 4, tempC: 46, powerW: 11, coreMhz: 800, memMhz: 2800, vramUsed: 380 * 1024 ** 2, vramTotal: 512 * 1024 ** 2, fanPct: null, fanRpm: null, processes: null },
@@ -134,6 +134,27 @@ const startup = (): StartupInfo => ({
   autostart,
 });
 
+// Machine de bureau fictive avec deux canaux pwm (nct6775) : tout est pilotable.
+// « ?fans=hp » simule un portable hp-wmi (Auto / pleine vitesse), « ?fans=none » sans service.
+const fansKind = params.get('fans');
+let fanMode: FanMode = { mode: 'curve', curve: { points: settings.fanCurve } };
+function fanStatus(): FanStatus {
+  if (fansKind === 'hp') {
+    return {
+      helper: { installed: true, version: '0.1.0', detail: null }, powerProfiles: { active: 'balanced', choices: ['power-saver', 'balanced', 'performance'] },
+      channels: [{ id: 'hp/pwm1', chip: 'hp', label: 'Ventilateurs', control: 'enableOnly', mode: fanMode.mode === 'max' ? fanMode : { mode: 'auto' }, rpm: 2840, pct: null }],
+    };
+  }
+  return {
+    helper: fansKind === 'none' ? { installed: false, version: null, detail: 'Service SysWatch non installé : lancez « cargo build --release -p syswatch-helper » puis « sudo ./scripts/install-helper.sh »' } : { installed: true, version: '0.1.0', detail: null },
+    powerProfiles: null,
+    channels: [
+      { id: 'nct6775/pwm1', chip: 'nct6775', label: 'Ventilateur CPU', control: 'full', mode: fanMode, rpm: 2840, pct: 52 },
+      { id: 'nct6775/pwm2', chip: 'nct6775', label: 'Ventilateur boîtier', control: 'full', mode: fanMode, rpm: 1210, pct: 48 },
+    ],
+  };
+}
+
 export const mockBackend: Backend = {
   getSystemInfo: async () => info,
   getSettings: async () => settings,
@@ -151,6 +172,9 @@ export const mockBackend: Backend = {
     pids.forEach(p => alive.delete(p));
   },
   getStartup: async () => startup(),
+  fanStatus: async () => fanStatus(),
+  setFanMode: async (_id, mode) => { fanMode = mode; },
+  setPowerProfile: async () => {},
   diskSmart: async id => ({
     available: true, detail: 'udisks2', protocol: id.startsWith('nvme') ? 'NVMe' : 'ATA', health: 'ok', remainingPct: 98, wearPct: 2, powerOnHours: 4212, tempC: 44, updatedS: Math.floor(Date.now() / 1000) - 12,
     attributes: [

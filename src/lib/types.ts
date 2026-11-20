@@ -261,4 +261,27 @@ export interface Settings {
   historyS: number;
   sidebarCollapsed: boolean;
   tempUnit: 'c' | 'f';
+  fanProfile: FanProfile;
+  fanCurve: [number, number][];
+}
+
+export type FanProfile = 'silencieux' | 'jeu' | 'performance';
+export type FanMode =
+  | { mode: 'auto' }
+  | { mode: 'max' }
+  | { mode: 'manual'; pct: number }
+  | { mode: 'curve'; curve: { points: [number, number][] } };
+export interface FanChannel {
+  id: string;
+  chip: string;
+  label: string;
+  control: 'full' | 'enableOnly';
+  mode: FanMode;
+  rpm: number | null;
+  pct: number | null;
+}
+export interface FanStatus {
+  helper: { installed: boolean; version: string | null; detail: string | null };
+  channels: FanChannel[];
+  powerProfiles: { active: string; choices: string[] } | null;
 }

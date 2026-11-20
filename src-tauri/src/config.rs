@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use syswatch_core::fans::Curve;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -19,6 +20,10 @@ pub struct Settings {
     pub sidebar_collapsed: bool,
     /// « c » ou « f ».
     pub temp_unit: String,
+    /// Profil de ventilation choisi : « silencieux », « jeu » ou « performance ».
+    pub fan_profile: String,
+    /// Courbe température → vitesse éditée (°C, %), appliquée en mode automatique.
+    pub fan_curve: Vec<(u8, u8)>,
 }
 
 impl Default for Settings {
@@ -30,6 +35,8 @@ impl Default for Settings {
             history_s: 60,
             sidebar_collapsed: false,
             temp_unit: "c".into(),
+            fan_profile: "jeu".into(),
+            fan_curve: Curve::preset("jeu").map(|c| c.points).unwrap_or_default(),
         }
     }
 }
@@ -44,6 +51,12 @@ impl Settings {
         }
         if !matches!(self.temp_unit.as_str(), "c" | "f") {
             self.temp_unit = "c".into();
+        }
+        if !matches!(self.fan_profile.as_str(), "silencieux" | "jeu" | "performance") {
+            self.fan_profile = "jeu".into();
+        }
+        if (Curve { points: self.fan_curve.clone() }).validate().is_err() {
+            self.fan_curve = Curve::preset(&self.fan_profile).map(|c| c.points).unwrap_or_default();
         }
         self
     }

@@ -3,7 +3,7 @@
 // jamais incluse dans l'application compilée.
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { FolderScan, ProcessList, Settings, SmartInfo, Snapshot, StartupInfo, SystemInfo } from './types';
+import type { FanMode, FanStatus, FolderScan, ProcessList, Settings, SmartInfo, Snapshot, StartupInfo, SystemInfo } from './types';
 
 export const inTauri = isTauri();
 
@@ -22,6 +22,11 @@ export interface Backend {
   diskSmart(id: string): Promise<SmartInfo>;
   /** Lance l'analyse d'espace par dossier si besoin ; à rappeler tant que `running`. */
   scanFolders(disk: string, force: boolean): Promise<FolderScan>;
+  fanStatus(): Promise<FanStatus>;
+  /** Passe par le service privilégié (polkit) ; rejette avec un message lisible. */
+  setFanMode(id: string, mode: FanMode): Promise<void>;
+  /** power-profiles-daemon : « power-saver », « balanced », « performance ». */
+  setPowerProfile(name: string): Promise<void>;
 }
 
 const tauriBackend: Backend = {
@@ -36,6 +41,9 @@ const tauriBackend: Backend = {
   setAutostart: (id, enabled) => invoke('set_autostart', { id, enabled }),
   diskSmart: id => invoke('disk_smart', { id }),
   scanFolders: (disk, force) => invoke('scan_folders', { disk, force }),
+  fanStatus: () => invoke('fan_status'),
+  setFanMode: (id, mode) => invoke('set_fan_mode', { id, mode }),
+  setPowerProfile: name => invoke('set_power_profile', { name }),
 };
 
 /** Message d'erreur lisible : Tauri rejette avec une chaîne, le reste avec une Error. */

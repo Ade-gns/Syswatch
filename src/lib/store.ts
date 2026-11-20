@@ -79,6 +79,7 @@ function extract(s: Snapshot): Record<string, number> {
     v[diskKey(d.id, 'write')] = d.writeBps;
     v[diskKey(d.id, 'temp')] = orNaN(d.tempC);
   }
+  for (const f of s.fans) v[`fan:${f.id}`] = orNaN(f.rpm);
   v.netRx = s.network.rxBps;
   v.netTx = s.network.txBps;
   v.ping = orNaN(s.network.pingMs);

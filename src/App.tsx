@@ -6,6 +6,7 @@ import { useLive } from './lib/store';
 import { BatteryPage } from './pages/BatteryPage';
 import { CpuPage } from './pages/CpuPage';
 import { DisksPage } from './pages/DisksPage';
+import { FansPage } from './pages/FansPage';
 import { GpuPage } from './pages/GpuPage';
 import { HomePage } from './pages/HomePage';
 import { MemoryPage } from './pages/MemoryPage';
@@ -15,7 +16,7 @@ import { StartupPage } from './pages/StartupPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 /** Étape de livraison prévue pour chaque page pas encore construite. */
-const PLANNED: Partial<Record<PageId, number>> = { fan: 5, alert: 6 };
+const PLANNED: Partial<Record<PageId, number>> = { alert: 6 };
 
 function Placeholder({ id }: { id: PageId }) {
   const name = PAGES.find(p => p !== '|' && p[0] === id)?.[1] ?? '';
@@ -57,7 +58,7 @@ export function App() {
         <SelfMemFooter page={page} onNavigate={setPage} collapsed={settings.sidebarCollapsed} />
         <main className="sw-main">
           {page === 'home' ? <HomePage /> : page === 'cpu' ? <CpuPage /> : page === 'gpu' ? <GpuPage /> : page === 'ram' ? <MemoryPage /> : page === 'disk' ? <DisksPage />
-            : page === 'bat' ? <BatteryPage /> : page === 'proc' ? <ProcessesPage /> : page === 'net' ? <NetworkPage /> : page === 'boot' ? <StartupPage /> : page === 'cog' ? <SettingsPage /> : <Placeholder id={page} />}
+            : page === 'bat' ? <BatteryPage /> : page === 'proc' ? <ProcessesPage /> : page === 'net' ? <NetworkPage /> : page === 'boot' ? <StartupPage /> : page === 'fan' ? <FansPage /> : page === 'cog' ? <SettingsPage /> : <Placeholder id={page} />}
         </main>
       </div>
     </div>
