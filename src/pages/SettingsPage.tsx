@@ -1,7 +1,11 @@
-// Page Paramètres — maquette « SettingsScreen » : colonne gauche Général (Apparence à
-// l'étape 7), colonne droite Widget compact et Mode jeu.
-import { useState } from 'react';
+// Page Paramètres — maquette « SettingsScreen » : colonne gauche Apparence et Général,
+// colonne droite Widget compact et Mode jeu. Changer le thème ou la couleur recolore toute
+// la fenêtre ; une couleur libre recalcule `--on-accent` ; `warn` et `crit` ne changent jamais.
+import { type CSSProperties, useEffect, useState } from 'react';
 import { Badge, Card, Widget } from '../components/Card';
+import { Bar, Ring } from '../components/Gauges';
+import { accentValue, contrast, resolveTheme } from '../lib/accent';
+import { ACCENT_PRESETS } from '../lib/tokens.gen';
 import { Segmented, SettingRow, Switch } from '../components/Controls';
 import { PageHeader } from '../components/Shell';
 import { be, errText } from '../lib/api';
@@ -17,6 +21,78 @@ function CornerPicker({ value, onChange, label }: { value: Corner; onChange: (c:
     <div className="sw-corner" role="group" aria-label={label}>
       {CORNERS.map(([c, name]) => <button key={c} type="button" aria-pressed={c === value} aria-label={name} onClick={() => onChange(c)} />)}
     </div>
+  );
+}
+
+function AppearanceCard() {
+  const s = useSettings();
+  const theme = resolveTheme(s.theme);
+  const current = accentValue(s.accent, theme);
+  const custom = !ACCENT_PRESETS.some(p => p.id === s.accent);
+  const [hex, setHex] = useState(current.toUpperCase());
+  useEffect(() => setHex(current.toUpperCase()), [current]);
+  // README : une couleur libre claire passe aussi en thème clair ; avertir si le contraste
+  // avec `surface-2` est inférieur à 4,5:1.
+  const surface = getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim() || '#ffffff';
+  const ratio = custom ? contrast(current, surface) : null;
+  const setColor = (v: string) => /^#[0-9a-f]{6}$/i.test(v) && updateSettings({ accent: v.toLowerCase() });
+  return (
+    <Card title="Apparence">
+      <SettingRow title="Thème" desc="Clair, sombre ou celui du système">
+        <Segmented label="Thème" value={s.theme} onChange={v => updateSettings({ theme: v })}
+          items={[{ value: 'dark', label: 'Sombre', icon: 'moon' }, { value: 'light', label: 'Clair', icon: 'sun' }, { value: 'system', label: 'Système' }]} />
+      </SettingRow>
+      <div className="sw-set" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10, padding: '12px 0' }}>
+        <div>
+          <div>Couleur d’accent</div>
+          <div className="d">Jauges, courbes et éléments actifs. Les alertes restent jaune et rouge.</div>
+        </div>
+        <div className="sw-swatches" role="group" aria-label="Préréglages d’accent">
+          {ACCENT_PRESETS.map(p => (
+            <button key={p.id} type="button" className="sw-sw" aria-label={p.name} aria-pressed={s.accent === p.id}
+              style={{ '--c': p[theme] } as CSSProperties} onClick={() => updateSettings({ accent: p.id })} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <input className="sw-colorin" type="color" value={current} aria-label="Choisir une couleur personnalisée" onChange={e => setColor(e.target.value)} />
+          <input className="sw-input" value={hex} style={{ width: 112 }} aria-label="Code hexadécimal"
+            onChange={e => setHex(e.target.value)} onBlur={() => { if (!setColor(hex)) setHex(current.toUpperCase()); }}
+            onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
+          <span className="d">Personnalisée</span>
+        </div>
+        {ratio != null && ratio < 4.5 && (
+          <div className="sw-note"><span>Contraste de {ratio.toFixed(1).replace('.', ',')}:1 avec les cartes, sous le minimum de 4,5:1 : texte d’accent peu lisible.</span></div>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+        <span className="sw-label">Aperçu</span>
+        <Ring pct={34} size={56} stroke={6} label="Normal" />
+        <Ring pct={82} size={56} stroke={6} label="Attention" />
+        <Ring pct={94} size={56} stroke={6} label="Critique" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+          <div className="l-ok"><Bar pct={58} h={8} /></div>
+          <div style={{ display: 'flex', gap: 8 }}><button className="sw-btn pri sm" type="button">Primaire</button><Badge s="acc">Accent</Badge></div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function LaunchRow() {
+  const { data, refresh } = usePoll(() => be().getLaunchAtLogin(), null);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <SettingRow title="Lancer au démarrage" desc={err ?? 'Démarre réduit dans la zone de notification'}>
+      <Switch on={!!data} label="Lancer au démarrage" onChange={async v => {
+        try {
+          await be().setLaunchAtLogin(v);
+          setErr(null);
+        } catch (e) {
+          setErr(errText(e));
+        }
+        refresh();
+      }} />
+    </SettingRow>
   );
 }
 
@@ -102,8 +178,10 @@ export function SettingsPage() {
       <PageHeader title="Paramètres" sub="Apparence, widget compact et mode jeu" />
       <div className="sw-grid" style={{ gridTemplateColumns: '7fr 5fr', gridTemplateRows: 'auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', minWidth: 0 }}>
+          <Widget span={12}><AppearanceCard /></Widget>
           <Widget span={12}>
             <Card title="Général">
+              <LaunchRow />
               <SettingRow title="Fréquence de rafraîchissement" desc="Plus rapide = un peu plus de CPU. Fenêtre masquée : toutes les 5 s au moins.">
                 <Segmented label="Fréquence de rafraîchissement" value={String(s.intervalMs)} onChange={v => updateSettings({ intervalMs: Number(v) })}
                   items={[{ value: '500', label: '0,5 s' }, { value: '1000', label: '1 s' }, { value: '2000', label: '2 s' }]} />

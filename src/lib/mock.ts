@@ -167,6 +167,9 @@ function fanStatus(): FanStatus {
   };
 }
 
+let savedLayout: unknown = null;
+let launchAtLogin = true;
+
 // Alertes de la maquette HomeScreen.
 const now = Math.floor(Date.now() / 1000);
 const at = (h: number, m: number) => { const d = new Date(); d.setHours(h, m, 0, 0); return Math.min(now, Math.floor(d.getTime() / 1000)); };
@@ -205,6 +208,10 @@ export const mockBackend: Backend = {
   reposition: async () => {},
   mangohudStatus: async () => ({ installed: true, configured: false, logDir: '~/.local/state/syswatch/mangohud' }),
   setupMangohud: async () => '~/.config/MangoHud/MangoHud.conf',
+  getLayout: async () => savedLayout,
+  getLaunchAtLogin: async () => launchAtLogin,
+  setLaunchAtLogin: async v => { launchAtLogin = v; },
+  saveLayout: async l => { savedLayout = l; },
   setFanMode: async (_id, mode) => { fanMode = mode; },
   setPowerProfile: async () => {},
   diskSmart: async id => ({

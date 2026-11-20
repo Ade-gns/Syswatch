@@ -124,6 +124,50 @@ fn save_settings(app: AppHandle, state: State<'_, AppState>, settings: Settings)
     Ok(s)
 }
 
+/* ---------- Lancement à l'ouverture de session ---------- */
+
+const AUTOSTART_FILE: &str = "syswatch.desktop";
+
+fn autostart_path() -> std::path::PathBuf {
+    syswatch_core::desktop::config_home().join("autostart").join(AUTOSTART_FILE)
+}
+
+#[tauri::command]
+fn get_launch_at_login() -> bool {
+    std::fs::read_to_string(autostart_path()).is_ok_and(|s| !s.contains("Hidden=true"))
+}
+
+/// Entrée d'autostart XDG (KDE, GNOME…) qui lance SysWatch réduit dans la zone de notification.
+#[tauri::command]
+fn set_launch_at_login(enabled: bool) -> Result<(), String> {
+    let path = autostart_path();
+    if !enabled {
+        return match std::fs::remove_file(&path) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(format!("Suppression de {} impossible : {e}", path.display())),
+            _ => Ok(()),
+        };
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let entry = format!(
+        "[Desktop Entry]\nType=Application\nName=SysWatch\nComment=Surveillance du PC, réduit dans la zone de notification\nExec=\"{}\" --tray\nIcon=syswatch\nTerminal=false\nX-GNOME-Autostart-enabled=true\n",
+        exe.display()
+    );
+    if let Some(d) = path.parent() {
+        std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&path, entry).map_err(|e| format!("Écriture de {} impossible : {e}", path.display()))
+}
+
+#[tauri::command]
+fn get_layout() -> Option<serde_json::Value> {
+    config::load_layout()
+}
+
+#[tauri::command]
+fn save_layout(layout: serde_json::Value) -> Result<(), String> {
+    config::save_layout(&layout).map_err(|e| format!("Disposition non enregistrée : {e}"))
+}
+
 #[tauri::command]
 fn set_visible(state: State<'_, AppState>, visible: bool) {
     state.sampler.send(Ctl::Visible(visible));
@@ -309,6 +353,13 @@ pub fn run() {
                 Err(e) => log::warn!("icône de notification indisponible : {e}"),
             }
             refresh_extras(&handle, &state);
+            // Lancé avec --tray (ouverture de session) : rester dans la zone de notification.
+            let to_tray = std::env::args().any(|a| a == "--tray") && state.tray.lock().unwrap().is_some();
+            if !to_tray {
+                if let Some(w) = handle.get_webview_window("main") {
+                    let _ = w.show();
+                }
+            }
             shortcut::spawn(handle);
             Ok(())
         })
@@ -330,7 +381,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_system_info, get_settings, save_settings, set_visible, list_processes, terminate, get_startup, set_autostart, disk_smart, scan_folders, fan_status,
-            set_fan_mode, set_power_profile, get_alerts, mark_alerts_read, clear_alerts, set_overlay_shown, get_overlay_shown, reposition, mangohud_status, setup_mangohud
+            set_fan_mode, set_power_profile, get_alerts, mark_alerts_read, clear_alerts, set_overlay_shown, get_overlay_shown, reposition, mangohud_status, setup_mangohud, get_layout, save_layout, get_launch_at_login, set_launch_at_login
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de SysWatch");

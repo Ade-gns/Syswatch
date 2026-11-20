@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Card, Empty } from './components/Card';
-import { PAGES, PageHeader, Sidebar, Titlebar, type PageId } from './components/Shell';
+import { PAGES, Sidebar, Titlebar, type PageId } from './components/Shell';
 import { updateSettings, useSettings } from './lib/settings';
 import { useAlerts } from './lib/alerts';
+import { useEditing } from './lib/editMode';
 import { useLive } from './lib/store';
 import { AlertsPage } from './pages/AlertsPage';
 import { BatteryPage } from './pages/BatteryPage';
@@ -17,20 +17,6 @@ import { ProcessesPage } from './pages/ProcessesPage';
 import { StartupPage } from './pages/StartupPage';
 import { SettingsPage } from './pages/SettingsPage';
 
-/** Étape de livraison prévue pour chaque page pas encore construite. */
-const PLANNED: Partial<Record<PageId, number>> = {};
-
-function Placeholder({ id }: { id: PageId }) {
-  const name = PAGES.find(p => p !== '|' && p[0] === id)?.[1] ?? '';
-  return (
-    <>
-      <PageHeader title={name} />
-      <Card title={name} className="flex-1">
-        <Empty>Cette page arrive à l'étape {PLANNED[id]} du développement.</Empty>
-      </Card>
-    </>
-  );
-}
 
 function SelfMemFooter({ page, onNavigate, collapsed }: { page: PageId; onNavigate: (p: PageId) => void; collapsed: boolean }) {
   const { snap } = useLive();
@@ -48,6 +34,7 @@ export function App() {
     return PAGES.some(p => p !== '|' && p[0] === h) ? (h as PageId) : 'home';
   });
   const settings = useSettings();
+  const editing = useEditing();
 
   // Ramène la zone principale en haut à chaque changement de page.
   useEffect(() => {
@@ -55,13 +42,13 @@ export function App() {
   }, [page]);
 
   return (
-    <div className={`sw-app${settings.sidebarCollapsed ? ' is-collapsed' : ''}`}>
+    <div className={`sw-app${settings.sidebarCollapsed || editing ? ' is-collapsed' : ''}${editing ? ' is-edit' : ''}`}>
       <Titlebar />
       <div className="sw-body">
-        <SelfMemFooter page={page} onNavigate={setPage} collapsed={settings.sidebarCollapsed} />
+        <SelfMemFooter page={page} onNavigate={setPage} collapsed={settings.sidebarCollapsed || editing} />
         <main className="sw-main">
           {page === 'home' ? <HomePage /> : page === 'cpu' ? <CpuPage /> : page === 'gpu' ? <GpuPage /> : page === 'ram' ? <MemoryPage /> : page === 'disk' ? <DisksPage />
-            : page === 'bat' ? <BatteryPage /> : page === 'proc' ? <ProcessesPage /> : page === 'net' ? <NetworkPage /> : page === 'boot' ? <StartupPage /> : page === 'fan' ? <FansPage /> : page === 'alert' ? <AlertsPage /> : page === 'cog' ? <SettingsPage /> : <Placeholder id={page} />}
+            : page === 'bat' ? <BatteryPage /> : page === 'proc' ? <ProcessesPage /> : page === 'net' ? <NetworkPage /> : page === 'boot' ? <StartupPage /> : page === 'fan' ? <FansPage /> : page === 'alert' ? <AlertsPage /> : <SettingsPage />}
         </main>
       </div>
     </div>

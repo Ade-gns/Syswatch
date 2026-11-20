@@ -169,6 +169,24 @@ pub fn save(s: &Settings) -> std::io::Result<()> {
     fs::rename(tmp, d.join("settings.json"))
 }
 
+/// Disposition de l'Accueil (~/.config/syswatch/layout.json). Validée côté interface :
+/// ici, seulement un tableau JSON de taille raisonnable.
+pub fn load_layout() -> Option<serde_json::Value> {
+    let v: serde_json::Value = serde_json::from_str(&fs::read_to_string(dir().join("layout.json")).ok()?).ok()?;
+    v.is_array().then_some(v)
+}
+
+pub fn save_layout(v: &serde_json::Value) -> std::io::Result<()> {
+    if !v.as_array().is_some_and(|a| a.len() <= 40) {
+        return Err(std::io::Error::other("disposition invalide"));
+    }
+    let d = dir();
+    fs::create_dir_all(&d)?;
+    let tmp = d.join("layout.json.tmp");
+    fs::write(&tmp, serde_json::to_vec_pretty(v)?)?;
+    fs::rename(tmp, d.join("layout.json"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

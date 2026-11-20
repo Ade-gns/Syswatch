@@ -1,154 +1,206 @@
-// Page Accueil — maquette « HomeScreen ». Chaque widget est à sa place dans la maquette ;
-// les emplacements encore vides (disque, réseau, processus, alertes) se remplissent avec
-// leurs collecteurs, et la grille devient personnalisable à l'étape 7.
-import { Badge, Card, Empty, Legend, LevelBadge, MeterRow, Sec, Widget } from '../components/Card';
+// Page Accueil — maquettes « HomeScreen » (mode normal) et « HomeEditScreen » (édition).
+// Mode édition : barre latérale repliée, bordures pointillées accent, poignée de
+// déplacement en haut (`dots`), bouton de retrait rond, coin de redimensionnement, panneau
+// « Ajouter un widget » de 264 px. Le widget saisi est soulevé (shadow-lift, bordure
+// accent, léger incliné) au-dessus d'un emplacement « Déposer ici » ; sa place d'origine
+// reste en pointillé gris. « Terminer » enregistre la disposition (~/.config/syswatch/
+// layout.json), « Réinitialiser » revient à la grille par défaut.
+// Clavier : sur une poignée, flèches = déplacer ; sur un coin, flèches = redimensionner.
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { Badge, Empty } from '../components/Card';
 import { Switch } from '../components/Controls';
-import { Spark } from '../components/Gauges';
 import { Icon } from '../components/Icon';
-import { LiveChart } from '../components/LiveChart';
-import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/Shell';
 import { useAlerts } from '../lib/alerts';
-import { be } from '../lib/api';
+import { be, errText } from '../lib/api';
+import { setEditing } from '../lib/editMode';
+import { duration, seconds } from '../lib/format';
+import { add, compact, type Item, type Layout, move, remove, resize, ROW_PX, sanitize } from '../lib/grid';
 import { useOverlayShown } from '../lib/overlay';
-import { AlertRow } from './AlertsPage';
-import { bytes, duration, storage, ghz, NBSP, num, rate, seconds, temp, tempStr, withUnit } from '../lib/format';
-import { gpuStateWord, mainGpu } from '../lib/gpu';
-import { level, NO_THRESHOLD, sensorThresholds, THRESHOLDS, worst } from '../lib/levels';
 import { usePoll } from '../lib/poll';
 import { useSettings } from '../lib/settings';
-import { gpuKey, tail, useLive } from '../lib/store';
-import type { NetworkSnapshot, ProcessList, SensorKind, SensorReading, Snapshot } from '../lib/types';
+import { useLive } from '../lib/store';
+import { CATALOG, type Ctx, DEFAULT_LAYOUT, WIDGETS } from '../home/widgets';
 
-const SPARK = 40;
-/** Une ligne par famille, dans l'ordre de la maquette : CPU, GPU, SSD, carte mère, batterie. */
-const HOME_KINDS: SensorKind[] = ['cpu', 'gpu', 'ssd', 'board', 'battery', 'ram'];
+const GAP = 16;
+const place = (i: Item): CSSProperties => ({ gridColumn: `${i.x + 1} / span ${i.w}`, gridRow: `${i.y + 1} / span ${i.h}` });
 
-function homeSensors(all: SensorReading[]) {
-  const rows: SensorReading[] = [];
-  for (const k of HOME_KINDS) {
-    // Le plus chaud de la famille : c'est lui qui compte pour l'état.
-    const s = all.filter(x => x.kind === k).sort((a, b) => b.valueC - a.valueC)[0];
-    if (s) rows.push(s.kind === 'gpu' || s.kind === 'ssd' || s.kind === 'cpu' ? { ...s, label: s.label.split(' · ')[0] } : s);
-  }
-  return rows.slice(0, 5);
-}
-
-/** Les 5 plus gros consommateurs de CPU : applications regroupées, autres processus seuls. */
-function topCpu(l: ProcessList) {
-  const loose = l.processes.filter(p => !p.app).map(p => ({ key: `p${p.pid}`, name: p.name, cpu: p.cpu }));
-  return [...l.apps.map(a => ({ key: `a${a.id}`, name: a.name, cpu: a.cpu })), ...loose].sort((a, b) => b.cpu - a.cpu).slice(0, 5);
-}
-
-const band = (mhz: number) => (mhz >= 5925 ? '6 GHz' : mhz >= 4900 ? '5 GHz' : '2,4 GHz');
-
-function NetCard({ n, rx }: { n: NetworkSnapshot; rx: number[] }) {
-  const [r, ru] = rate(n.rxBps);
-  const [t, tu] = rate(n.txBps);
-  const big = { fontSize: 24, lineHeight: '30px' };
-  const w = n.wifi;
-  return (
-    <Card title="Réseau" right={<Badge s={n.connected ? 'ok' : 'crit'}>{n.connected ? 'Connecté' : 'Déconnecté'}</Badge>}>
-      <div className="sw-net">
-        <div><span className="sw-sec"><Icon name="down" size={13} /> Réception</span><div className="sw-val md" style={big}>{r}<small>{ru}</small></div></div>
-        <div><span className="sw-sec"><Icon name="up" size={13} /> Émission</span><div className="sw-val md" style={big}>{t}<small>{tu}</small></div></div>
-      </div>
-      <div className="l-ok"><Spark values={rx} min={0} h={44} /></div>
-      <div className="sw-foot sw-sec">
-        <span>{n.pingMs != null ? `Ping ${withUnit(num(n.pingMs), 'ms')}` : 'Ping —'}</span>
-        {w && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}><Icon name="wifi" size={12} /> Wi‑Fi {w.freqMhz ? band(w.freqMhz) : ''}{w.signalDbm != null ? ` · −${Math.abs(w.signalDbm)}${NBSP}dBm` : ''}</span>}
-      </div>
-    </Card>
-  );
-}
-
-/** Carte « Disque /home » de la maquette : système de fichiers de /home, sinon /. */
-function HomeDisk({ snap }: { snap: Snapshot }) {
-  const mounts = snap.disks.flatMap(d => d.mounts);
-  const m = mounts.find(x => x.targets.includes('/home')) ?? mounts.find(x => x.targets.includes('/')) ?? mounts[0];
-  if (!m) return <MetricCard kind="text" label="Disque" pct={0} value="—" sub="Aucun montage" />;
-  const target = m.targets.includes('/home') ? '/home' : m.targets[0];
-  const [u, uu] = storage(m.used);
-  return <MetricCard kind="bar" label={`Disque ${target}`} pct={m.total ? (m.used / m.total) * 100 : 0} th={THRESHOLDS.disk} value={u} unit={uu} sub={`/${NBSP}${storage(m.total, { trim: true }).join(NBSP)}`} />;
+interface Drag {
+  id: string;
+  kind: 'move' | 'resize';
+  orig: Item;
+  base: Layout;
+  sx: number;
+  sy: number;
+  dx: number;
+  dy: number;
 }
 
 export function HomePage() {
-  const procs = usePoll(() => be().listProcesses(false), 2000).data;
+  const live = useLive();
+  const { intervalMs, tempUnit } = useSettings();
   const { history } = useAlerts();
   const [gameMode, setGameMode] = useOverlayShown();
-  const { snap, info, times, series, get, historyMs } = useLive();
-  const { intervalMs, tempUnit } = useSettings();
-  if (!snap || !info) return <Empty>Lecture des capteurs…</Empty>;
-  const { cpu, memory } = snap;
-  const ramPct = memory.total ? (memory.used / memory.total) * 100 : 0;
-  const [used, usedUnit] = bytes(memory.used);
-  const gpu = mainGpu(info, snap);
-  const gs = gpu?.snap;
-  const temps = homeSensors(snap.sensors);
-  const tempsLevel = worst(temps.map(s => level(s.valueC, sensorThresholds(s.kind))));
+  const [layout, setLayout] = useState<Layout | null>(null);
+  const [edit, setEdit] = useState(false);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const grid = useRef<HTMLDivElement>(null);
 
+  // Disposition enregistrée, sinon celle de la maquette.
+  useEffect(() => {
+    be().getLayout().then(raw => setLayout(sanitize(raw, t => t in WIDGETS) ?? DEFAULT_LAYOUT)).catch(() => setLayout(DEFAULT_LAYOUT));
+  }, []);
+  useEffect(() => {
+    setEditing(edit);
+    return () => setEditing(false);
+  }, [edit]);
+
+  const types = new Set(layout?.map(i => i.type));
+  const needProcs = types.has('procs');
+  const procs = usePoll(() => (needProcs ? be().listProcesses(false) : Promise.resolve(null)), needProcs ? 2000 : null, String(needProcs)).data;
+  const needBoot = types.has('boot');
+  const startup = usePoll(() => (needBoot ? be().getStartup() : Promise.resolve(null)), null, String(needBoot)).data;
+
+  const pitch = () => {
+    const w = grid.current?.clientWidth ?? 1200;
+    return { col: (w + GAP) / 12, row: ROW_PX + GAP };
+  };
+  // Pendant un geste : disposition provisoire (les autres widgets s'écartent).
+  const preview = useMemo(() => {
+    if (!drag || !layout) return layout;
+    const p = pitch();
+    const dc = Math.round(drag.dx / p.col), dr = Math.round(drag.dy / p.row);
+    return drag.kind === 'move'
+      ? move(drag.base, drag.id, drag.orig.x + dc, drag.orig.y + dr)
+      : resize(drag.base, drag.id, drag.orig.w + dc, drag.orig.h + dr, WIDGETS[drag.orig.type].minH);
+  }, [drag, layout]);
+
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e: PointerEvent) => setDrag(d => (d ? { ...d, dx: e.clientX - d.sx, dy: e.clientY - d.sy } : d));
+    const onUp = () => {
+      setLayout(compact(preview ?? layout ?? []));
+      setDrag(null);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [drag, preview, layout]);
+
+  const { snap, info } = live;
+  if (!snap || !info || !layout) return <Empty>Lecture des capteurs…</Empty>;
+  const ctx: Ctx = { ...live, snap, info, tempUnit, procs, alerts: history, startup };
+  const shown = preview ?? layout;
+
+  const start = (e: React.PointerEvent, it: Item, kind: Drag['kind']) => {
+    e.preventDefault();
+    setDrag({ id: it.id, kind, orig: it, base: layout, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0 });
+  };
+  const keyMove = (e: React.KeyboardEvent, it: Item, kind: Drag['kind']) => {
+    const d: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (!d[e.key]) return;
+    e.preventDefault();
+    const [dx, dy] = d[e.key];
+    // Largeurs autorisées 3…8 puis 12 : de 8, « → » passe directement à 12.
+    const dw = dx > 0 && it.w >= 8 ? 4 : dx < 0 && it.w === 12 ? -4 : dx;
+    setLayout(compact(kind === 'move' ? move(layout, it.id, it.x + dx, it.y + dy) : resize(layout, it.id, it.w + dw, it.h + dy, WIDGETS[it.type].minH)));
+  };
+  const done = async () => {
+    try {
+      await be().saveLayout(layout);
+      setErr(null);
+      setEdit(false);
+    } catch (e) {
+      setErr(errText(e));
+    }
+  };
+
+  const header = edit ? (
+    <PageHeader title="Accueil" sub={err ?? 'Glissez, redimensionnez ou retirez les widgets'} actions={
+      <>
+        <Badge s="acc">Mode édition</Badge>
+        <button className="sw-btn" type="button" onClick={() => setLayout(DEFAULT_LAYOUT)}>Réinitialiser</button>
+        <button className="sw-btn pri" type="button" onClick={done}><Icon name="check" size={15} />Terminer</button>
+      </>
+    } />
+  ) : (
+    <PageHeader title="Accueil" sub={`${info.osName} · allumé depuis ${duration(snap.uptimeS)} · mise à jour toutes les ${seconds(intervalMs / 1000)}`} actions={
+      <>
+        <span className="sw-inl"><Icon name="game" size={16} /> Mode jeu <Switch on={gameMode} label="Mode jeu" onChange={setGameMode} /></span>
+        <button className="sw-btn" type="button" onClick={() => setEdit(true)}><Icon name="edit" size={15} />Personnaliser</button>
+      </>
+    } />
+  );
+
+  const gridEl = (
+    <div className="sw-grid sw-home" ref={grid} style={{ gridAutoRows: `${ROW_PX}px` }}>
+      {drag?.kind === 'move' && <div className="sw-slot ghost" style={place(drag.orig)} />}
+      {shown.map(it => {
+        const def = WIDGETS[it.type];
+        const body = def.render(ctx);
+        const tools = edit && (
+          <>
+            <button type="button" className="grip" title="Déplacer le widget" aria-label={`Déplacer ${def.name} (flèches)`}
+              onPointerDown={e => start(e, it, 'move')} onKeyDown={e => keyMove(e, it, 'move')}><Icon name="dots" size={16} /></button>
+            <button type="button" className="rm" aria-label={`Retirer ${def.name}`} onClick={() => setLayout(remove(layout, it.id))}><Icon name="x" size={13} /></button>
+            <button type="button" className="rs" aria-label={`Redimensionner ${def.name} (flèches)`}
+              onPointerDown={e => start(e, it, 'resize')} onKeyDown={e => keyMove(e, it, 'resize')}><Icon name="resize" size={12} /></button>
+          </>
+        );
+        if (drag?.kind === 'move' && drag.id === it.id) {
+          const p = pitch();
+          const tx = drag.dx - (it.x - drag.orig.x) * p.col, ty = drag.dy - (it.y - drag.orig.y) * p.row;
+          return (
+            <div key={it.id} className="sw-cell-slot" style={place(it)}>
+              <div className="sw-slot">Déposer ici</div>
+              <div className="sw-w is-drag" style={{ transform: `translate(${tx}px, ${ty}px) rotate(-1.2deg)` }}>{body}{tools}</div>
+            </div>
+          );
+        }
+        return <div key={it.id} className="sw-w" style={place(it)}>{body}{tools}</div>;
+      })}
+      {shown.length === 0 && <div className="sw-slot c12" style={{ gridRow: 'span 3' }}>Ajoutez des widgets depuis le panneau « Ajouter un widget »</div>}
+    </div>
+  );
+
+  if (!edit) {
+    return (
+      <>
+        {header}
+        {gridEl}
+      </>
+    );
+  }
+  const needle = q.trim().toLowerCase();
   return (
     <>
-      <PageHeader title="Accueil" sub={`${info.osName} · allumé depuis ${duration(snap.uptimeS)} · mise à jour toutes les ${seconds(intervalMs / 1000)}`}
-        actions={<span className="sw-inl"><Icon name="game" size={16} /> Mode jeu <Switch on={gameMode} label="Mode jeu" onChange={setGameMode} /></span>} />
-      <div className="sw-grid" style={{ gridTemplateRows: '128px 232px minmax(200px, 1fr)', minHeight: 'calc(128px + 232px + 200px + 2 * var(--space-4))' }}>
-        <Widget span={3}>
-          <MetricCard label="CPU" pct={cpu.usage} value={cpu.freqMhz != null ? ghz(cpu.freqMhz) : '—'} unit={cpu.freqMhz != null ? 'GHz' : undefined}
-            sub={cpu.tempC != null ? tempStr(cpu.tempC, tempUnit) : ''} series={tail(series.cpu, SPARK)} />
-        </Widget>
-        <Widget span={3}>
-          {gpu && gs?.state === 'active' && gs.usage != null ? (
-            <MetricCard label="GPU" pct={gs.usage} value={gs.tempC != null ? temp(gs.tempC, tempUnit)[0] : '—'} unit={gs.tempC != null ? temp(gs.tempC, tempUnit)[1] : undefined}
-              sub={gs.vramUsed != null ? `VRAM ${bytes(gs.vramUsed).join(NBSP)}` : gpu.info.name} series={tail(get(gpuKey(gpu.info.id, 'usage')), SPARK)} />
-          ) : (
-            <MetricCard kind="text" label="GPU" pct={0} value="—" sub={gpu ? gpuStateWord(gs?.state) : 'Aucun GPU'} title={gs?.detail ?? undefined} />
-          )}
-        </Widget>
-        <Widget span={3}>
-          <MetricCard label="Mémoire" pct={ramPct} value={used} unit={usedUnit} sub={`/${NBSP}${bytes(memory.total, { trim: true }).join(NBSP)}`} series={tail(series.ram, SPARK)} />
-        </Widget>
-        <Widget span={3}><HomeDisk snap={snap} /></Widget>
-
-        <Widget span={8}>
-          <Card title="Activité en temps réel" right={<Legend items={[{ name: 'CPU', color: 'var(--accent)' }, ...(gpu ? [{ name: 'GPU', color: 'var(--series-2)', style: 'd' as const }] : []), { name: 'Mémoire', color: 'var(--series-3)', style: 't' }]} />}>
-            <LiveChart label="Activité CPU, GPU et mémoire" max={100} unit="%" times={times} spanMs={historyMs} series={[
-              { name: 'CPU', color: 'var(--accent)', values: series.cpu },
-              ...(gpu ? [{ name: 'GPU', color: 'var(--series-2)', style: 'd' as const, values: get(gpuKey(gpu.info.id, 'usage')) }] : []),
-              { name: 'Mémoire', color: 'var(--series-3)', style: 't', values: series.ram },
-            ]} />
-          </Card>
-        </Widget>
-        <Widget span={4}><NetCard n={snap.network} rx={tail(get('netRx'), SPARK)} /></Widget>
-
-        <Widget span={4}>
-          <Card title="Top processus" right={<Sec>CPU</Sec>}>
-            {procs ? (
-              <div className="sw-rows">
-                {topCpu(procs).map(p => <MeterRow key={p.key} label={p.name} pct={p.cpu * 5} th={NO_THRESHOLD} value={withUnit(num(p.cpu, 1), '%')} />)}
-              </div>
-            ) : <Empty>Lecture des processus…</Empty>}
-          </Card>
-        </Widget>
-        <Widget span={4}>
-          <Card title="Températures" right={temps.length > 0 && <LevelBadge l={tempsLevel} />}>
-            {temps.length ? (
-              <div className="sw-rows">
-                {temps.map(s => <MeterRow key={s.id} label={s.label} pct={s.valueC} th={sensorThresholds(s.kind)} value={tempStr(s.valueC, tempUnit)} />)}
-              </div>
-            ) : (
-              <Empty>Aucun capteur de température lisible.</Empty>
-            )}
-          </Card>
-        </Widget>
-        <Widget span={4}>
-          <Card title="Alertes récentes" right={<Sec>{history.length ? 'aujourd’hui' : ''}</Sec>}>
-            {history.length ? (
-              <div className="sw-rows" style={{ justifyContent: 'flex-start', gap: 4 }}>
-                {history.slice(0, 3).map(e => <AlertRow key={e.seq} e={e} />)}
-              </div>
-            ) : <Empty>Aucune alerte : tout est dans les seuils.</Empty>}
-          </Card>
-        </Widget>
+      {header}
+      <div className="sw-edit-wrap">
+        {gridEl}
+        <aside className="sw-panel" aria-label="Ajouter un widget">
+          <div className="sw-card-h" style={{ margin: 0 }}><span className="sw-label">Ajouter un widget</span></div>
+          <div className="sw-search" style={{ display: 'flex' }}>
+            <Icon name="search" size={15} />
+            <input className="sw-input" style={{ width: '100%', paddingLeft: 32, fontFamily: 'var(--font-ui)' }} placeholder="Filtrer" aria-label="Filtrer les widgets" value={q} onChange={e => setQ(e.target.value)} />
+          </div>
+          <div className="sw-cats">
+            {CATALOG.filter(t => WIDGETS[t].name.toLowerCase().includes(needle)).map(t => {
+              const d = WIDGETS[t];
+              return (
+                <div className="sw-cat" key={t}>
+                  <span className="ico"><Icon name={d.icon} size={18} /></span>
+                  <div className="tx">{d.name}<span>{d.w}×{d.h} cellules</span></div>
+                  <button className="sw-btn sm" type="button" aria-label={`Ajouter ${d.name}`} onClick={() => setLayout(compact(add(layout, t, d.w, d.h)))}><Icon name="plus" size={14} /></button>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
       </div>
     </>
   );

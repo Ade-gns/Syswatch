@@ -43,6 +43,11 @@ export interface Backend {
   reposition(label: string): Promise<void>;
   mangohudStatus(): Promise<MangohudStatus>;
   setupMangohud(): Promise<string>;
+  /** Disposition de l'Accueil enregistrée (validée par l'interface), ou null. */
+  getLayout(): Promise<unknown>;
+  saveLayout(layout: unknown): Promise<void>;
+  getLaunchAtLogin(): Promise<boolean>;
+  setLaunchAtLogin(enabled: boolean): Promise<void>;
 }
 
 const tauriBackend: Backend = {
@@ -72,6 +77,10 @@ const tauriBackend: Backend = {
   reposition: label => invoke('reposition', { label }),
   mangohudStatus: () => invoke('mangohud_status'),
   setupMangohud: () => invoke('setup_mangohud'),
+  getLayout: () => invoke('get_layout'),
+  saveLayout: layout => invoke('save_layout', { layout }),
+  getLaunchAtLogin: () => invoke('get_launch_at_login'),
+  setLaunchAtLogin: enabled => invoke('set_launch_at_login', { enabled }),
 };
 
 /** Message d'erreur lisible : Tauri rejette avec une chaîne, le reste avec une Error. */
