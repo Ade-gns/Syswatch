@@ -1,0 +1,14 @@
+[package]
+name = "syswatch-core"
+description = "Collecte des mesures système de SysWatch (sans droits root)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+sysinfo.workspace = true
+log.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

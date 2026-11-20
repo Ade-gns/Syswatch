@@ -1,0 +1,96 @@
+/* @generated par scripts/sync-tokens.mjs depuis « SysWatch design/ » — ne pas éditer */
+@theme {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --font-*: initial;
+  --spacing: 4px; /* grille de 4 px du design : p-4 = space-4 = 16 px */
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-control-border: var(--control-border);
+  --color-gridline: var(--gridline);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-crit: var(--crit);
+  --color-on-crit: var(--on-crit);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-overlay-bg: var(--overlay-bg);
+  --color-preset-cyan: var(--preset-cyan);
+  --color-preset-vert: var(--preset-vert);
+  --color-preset-orange: var(--preset-orange);
+  --color-preset-rose: var(--preset-rose);
+  --color-preset-violet: var(--preset-violet);
+  --spacing-s1: 4px;
+  --spacing-s2: 8px;
+  --spacing-s3: 12px;
+  --spacing-s4: 16px;
+  --spacing-s5: 20px;
+  --spacing-s6: 24px;
+  --spacing-s8: 32px;
+  --spacing-s12: 48px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-card: var(--shadow-card);
+  --shadow-lift: var(--shadow-lift);
+  --font-ui: "Barlow", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --width-sidebar-w: 216px;
+  --width-sidebar-w-collapsed: 64px;
+  --width-titlebar-h: 36px;
+}
+@utility type-title-page {
+  font-family: var(--font-ui); font-size: 22px; line-height: 26px; font-weight: 600;
+  letter-spacing: 0;
+}
+@utility type-label {
+  font-family: var(--font-ui); font-size: 12px; line-height: 16px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+@utility type-nav {
+  font-family: var(--font-ui); font-size: 14px; line-height: 20px; font-weight: 500;
+  letter-spacing: 0;
+}
+@utility type-body {
+  font-family: var(--font-ui); font-size: 14px; line-height: 20px; font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-body-sm {
+  font-family: var(--font-ui); font-size: 13px; line-height: 18px; font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-caption {
+  font-family: var(--font-ui); font-size: 12px; line-height: 16px; font-weight: 400;
+  letter-spacing: 0;
+}
+@utility type-value-xl {
+  font-family: var(--font-mono); font-size: 40px; line-height: 44px; font-weight: 500;
+  letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
+@utility type-value {
+  font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 500;
+  letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
+@utility type-value-md {
+  font-family: var(--font-mono); font-size: 18px; line-height: 24px; font-weight: 500;
+  letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
+@utility type-data {
+  font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 400;
+  letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
+@utility type-axis {
+  font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 400;
+  letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
