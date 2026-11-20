@@ -1,0 +1,165 @@
+/* SysWatch — generated from tokens.json */
+:root, [data-theme="dark"] {
+  --bg: #0a0c10; /* Fond de la fenêtre, derrière les cartes. Jamais de texte courant directement dessus hors titres de page. */
+  --surface-1: #0e1116; /* Barre de titre, barre latérale, champs de saisie. Texte `text` et `text-muted` dessus. */
+  --surface-2: #12151b; /* Cartes et widgets (légèrement surélevés, avec `border` et `shadow-card`). Texte `text` et `text-muted` dessus. */
+  --surface-3: #1a1f28; /* Survol de ligne, bouton segmenté actif, bulle d'info au survol des graphiques. Texte `text` et `text-muted` dessus. */
+  --border: #232a35; /* Bordure fine des cartes, séparateurs, piste vide des jauges et barres. Décoratif seulement. */
+  --control-border: #5f6b80; /* Bordure des contrôles interactifs (boutons, champs, interrupteurs, boutons de ventilateur). Atteint 3:1 sur `surface-2` et `surface-3`. */
+  --gridline: #1b212b; /* Lignes de grille des graphiques et de l'éditeur de courbe. */
+  --text: #e8ecf2; /* Texte principal et valeurs chiffrées sur `surface-1`, `surface-2`, `surface-3`. */
+  --text-muted: #8a94a6; /* Libellés, unités, axes, texte secondaire sur `bg`, `surface-1`, `surface-2`, `surface-3` (≥ 4,5:1 dans les deux thèmes). */
+  --text-disabled: #4a5365; /* Contrôles désactivés uniquement. Jamais pour une information utile. */
+  --accent: #00d4ff; /* Couleur d'accent PERSONNALISABLE (cyan par défaut) : état normal des jauges, courbe principale, élément actif, boutons primaires. En thème clair, variante assombrie (≥ 4,5:1 sur `surface-2`). À écraser par variable CSS dans Paramètres. */
+  --on-accent: #04222b; /* Texte et icônes posés sur un fond `accent` (bouton primaire, logo, interrupteur actif). À recalculer si l'utilisateur change l'accent. */
+  --ok: #3ddc84; /* Statut « bon » (SMART sain, connecté). Toujours accompagné du mot ou d'une icône, jamais seul. */
+  --warn: #ffc93c; /* Attention : jauge au seuil d'avertissement, alerte jaune. Toujours accompagnée d'un libellé ou d'une icône. */
+  --crit: #ff4d5e; /* Critique : jauge au seuil critique, alerte rouge, bouton « Fermer » au survol. Toujours accompagné d'un libellé ou d'une icône. */
+  --on-crit: #0a0c10; /* Texte sur un fond `crit` (pastille de compteur d'alertes, bouton de confirmation). */
+  --series-2: #ff8a3d; /* Deuxième courbe d'un graphique (GPU, écriture, émission). Trait en tirets longs pour se distinguer sans la couleur. */
+  --series-3: #b58cff; /* Troisième courbe d'un graphique (RAM). Trait en pointillés. */
+  --overlay-bg: #0a0c10b8; /* Fond translucide du widget compact et de l'overlay de jeu (le jeu reste visible derrière). */
+  --preset-cyan: #00d4ff; /* Préréglage d'accent Cyan (défaut). Valeur sombre / valeur claire à injecter dans `accent`. */
+  --preset-vert: #3ddc84; /* Préréglage d'accent Vert. Valeur sombre / valeur claire à injecter dans `accent`. */
+  --preset-orange: #ff8a3d; /* Préréglage d'accent Orange. Valeur sombre / valeur claire à injecter dans `accent`. */
+  --preset-rose: #ff5fa2; /* Préréglage d'accent Rose. Valeur sombre / valeur claire à injecter dans `accent`. */
+  --preset-violet: #b58cff; /* Préréglage d'accent Violet. Valeur sombre / valeur claire à injecter dans `accent`. */
+  --shadow-card: 0 1px 0 #ffffff0a inset, 0 6px 18px #00000066; /* Cartes au repos : léger relief sur le fond. */
+  --shadow-lift: 0 16px 40px #000000b3; /* Widget en cours de déplacement, bulle d'info de graphique, overlay. */
+}
+[data-theme="light"] {
+  --bg: #eef1f6;
+  --surface-1: #f7f9fc;
+  --surface-2: #ffffff;
+  --surface-3: #e7ecf4;
+  --border: #d5dbe5;
+  --control-border: #7a869b;
+  --gridline: #e2e7ef;
+  --text: #121722;
+  --text-muted: #4f5a6e;
+  --text-disabled: #9aa4b5;
+  --accent: #006f8c;
+  --on-accent: #ffffff;
+  --ok: #0b7d42;
+  --warn: #9a6000;
+  --crit: #c8283b;
+  --on-crit: #ffffff;
+  --series-2: #b34700;
+  --series-3: #6b3fcc;
+  --overlay-bg: #ffffffd1;
+  --preset-cyan: #006f8c;
+  --preset-vert: #0b7d42;
+  --preset-orange: #b34700;
+  --preset-rose: #b8236b;
+  --preset-violet: #6b3fcc;
+  --shadow-card: 0 1px 2px #1217221f, 0 4px 14px #12172214;
+  --shadow-lift: 0 14px 34px #12172238;
+}
+:root {
+  --space-1: 4px; /* Écart icône–texte serré, espace entre barres de signal. */
+  --space-2: 8px; /* Écart entre petits contrôles, padding vertical de pastille. */
+  --space-3: 12px; /* Écart libellé–valeur, padding de bouton, marge sous un titre de carte. */
+  --space-4: 16px; /* Gouttière de la grille de widgets et padding de carte. */
+  --space-5: 20px; /* Marge verticale de la zone principale. */
+  --space-6: 24px; /* Marge horizontale de la zone principale. */
+  --space-8: 32px; /* Séparation entre groupes de réglages. */
+  --space-12: 48px; /* Grandes respirations (cover, états vides). */
+  --radius-xs: 4px; /* Barres de jauge, pastilles de touche clavier. */
+  --radius-sm: 8px; /* Boutons, champs, éléments de la barre latérale, bulles d'info. */
+  --radius-md: 12px; /* Cartes et widgets, boutons de ventilateur. */
+  --radius-lg: 16px; /* Fenêtre, panneaux, overlay de jeu. */
+  --radius-pill: 999px; /* Badges d'état, curseurs, interrupteurs. */
+  --sidebar-w: 216px; /* Largeur de la barre latérale dépliée (icônes + libellés). */
+  --sidebar-w-collapsed: 64px; /* Largeur de la barre latérale repliée (icônes seules, bulle au survol). */
+  --titlebar-h: 36px; /* Hauteur de la barre de titre de la fenêtre. */
+  --font-ui: "Barlow", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --text-title-page: 600 22px/26px var(--font-ui); /* Titre de page (Accueil, CPU…). */
+  --text-label: 500 12px/16px var(--font-ui); /* Titre de carte et en-tête de colonne. Toujours en MAJUSCULES (text-transform: uppercase). */
+  --text-nav: 500 14px/20px var(--font-ui); /* Libellés de la barre latérale, boutons. */
+  --text-body: 400 14px/20px var(--font-ui); /* Texte courant et descriptions de réglage. */
+  --text-body-sm: 400 13px/18px var(--font-ui); /* Texte secondaire, lignes de tableau, sous-titres de page. */
+  --text-caption: 400 12px/16px var(--font-ui); /* Légendes, pastilles d'état. */
+  --text-value-xl: 500 40px/44px var(--font-mono); /* Valeur héros (FPS de l'overlay, grande jauge). */
+  --text-value: 500 28px/32px var(--font-mono); /* Valeur principale d'une carte de métrique. */
+  --text-value-md: 500 18px/24px var(--font-mono); /* Valeur secondaire (débit, tr/min). */
+  --text-data: 400 13px/18px var(--font-mono); /* Chiffres de tableau, sous-valeurs, bulles d'info. */
+  --text-axis: 400 11px/14px var(--font-mono); /* Graduations d'axes des graphiques. */
+}
+.title-page {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.label {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.nav {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.body {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.body-sm {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.caption {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.value-xl {
+  font-family: var(--font-mono);
+  font-size: 40px;
+  line-height: 44px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.value {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.value-md {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.data {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.axis {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+}

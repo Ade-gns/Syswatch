@@ -1,0 +1,98 @@
+{
+  "manifestVersion": 3,
+  "name": "SysWatch",
+  "namespace": "SysWatch",
+  "files": [
+    "components/CompactOverlay/README.md",
+    "components/Controls/README.md",
+    "components/CpuScreen/README.md",
+    "components/DisksScreen/README.md",
+    "components/FanControl/README.md",
+    "components/FansScreen/README.md",
+    "components/HomeEditScreen/README.md",
+    "components/HomeLightScreen/README.md",
+    "components/HomeScreen/README.md",
+    "components/LiveChart/README.md",
+    "components/MetricCard/README.md",
+    "components/ProcessTable/README.md",
+    "components/SettingsScreen/README.md",
+    "components/Sidebar/README.md",
+    "components/bundle.css",
+    "components/bundle.js",
+    "tokens.css"
+  ],
+  "libraries": [],
+  "components": [
+    {
+      "name": "CompactOverlay",
+      "group": "Écrans",
+      "summary": "Maquette du widget compact toujours visible (barre, carte, pastille) et de l'overlay FPS du mode jeu (standard, minimal, détaillé)."
+    },
+    {
+      "name": "Controls",
+      "group": "Composants",
+      "summary": "Contrôles de base : boutons, bouton segmenté, interrupteur, curseur, champ, case, pastilles de couleur, badges d'état, jauges et touches de clavier."
+    },
+    {
+      "name": "CpuScreen",
+      "group": "Écrans",
+      "summary": "Maquette de la page CPU : charge globale, température, fréquence, puissance, courbe de charge, charge par thread, températures, fréquences par cœur et fiche d'…"
+    },
+    {
+      "name": "DisksScreen",
+      "group": "Écrans",
+      "summary": "Maquette de la page Disques : santé SMART, température, débit de lecture/écriture, espace utilisé, espace par dossier et table SMART."
+    },
+    {
+      "name": "FanControl",
+      "group": "Composants",
+      "summary": "Contrôle des ventilateurs : bascule Auto, trois boutons Faible / Moyen / Fort, vitesses des deux ventilateurs, et éditeur de courbe température → vitesse."
+    },
+    {
+      "name": "FansScreen",
+      "group": "Écrans",
+      "summary": "Maquette de la page Ventilateurs : profils Silencieux, Jeu et Performance, contrôle Faible / Moyen / Fort, bascule Auto, courbe température → vitesse, historiq…"
+    },
+    {
+      "name": "HomeEditScreen",
+      "group": "Écrans",
+      "summary": "Maquette de l'Accueil en mode édition : poignée de déplacement, bouton de retrait, coin de redimensionnement et panneau « Ajouter un widget »."
+    },
+    {
+      "name": "HomeLightScreen",
+      "group": "Écrans",
+      "summary": "Variante thème clair de la page Accueil, obtenue en posant data-theme=\"light\" sur la fenêtre, sans aucune règle de style supplémentaire."
+    },
+    {
+      "name": "HomeScreen",
+      "group": "Écrans",
+      "summary": "Maquette de la page Accueil en mode normal : quatre cartes de métrique, graphique temps réel, réseau, top processus, températures et alertes récentes."
+    },
+    {
+      "name": "LiveChart",
+      "group": "Composants",
+      "summary": "Graphique en courbes temps réel sur 60 secondes, avec survol détaillé et échelle fixe ou automatique."
+    },
+    {
+      "name": "MetricCard",
+      "group": "Composants",
+      "summary": "Carte de métrique en trois variantes : jauge circulaire, barre avec repères de seuil, et valeur avec mini-courbe."
+    },
+    {
+      "name": "ProcessTable",
+      "group": "Composants",
+      "summary": "Tableau de processus triable avec recherche, bascule « Applications ouvertes » / « Tous les processus » et bouton « Fermer » par ligne."
+    },
+    {
+      "name": "SettingsScreen",
+      "group": "Écrans",
+      "summary": "Maquette de la page Paramètres : thème clair/sombre, couleur d'accent avec préréglages, widget compact, mode jeu et réglages généraux."
+    },
+    {
+      "name": "Sidebar",
+      "group": "Composants",
+      "summary": "Barre latérale de navigation : 12 pages en quatre groupes, repliable de 216 à 64 px, avec la mémoire utilisée par SysWatch en bas."
+    }
+  ],
+  "assetGroups": []
+}

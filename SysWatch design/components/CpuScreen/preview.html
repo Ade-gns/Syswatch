@@ -1,0 +1,29 @@
+<!-- @dsCard group="Écrans" height=800 width=1280 subtitle="CPU — charge, température, cœurs, fréquences" -->
+<div id="root"></div>
+<script>
+const S = SysWatch, root = document.getElementById('root');
+const W = (c, h) => '<div class="sw-w ' + c + '">' + h + '</div>';
+const frow = (n, g) => '<div class="sw-row"><span>' + n + '</span><span class="l-ok">' + S.bar({ pct: g / 5.1 * 100, warn: 101, crit: 101, ticks: false, h: 6 }) + '</span><span class="sw-mono">' + S.n(g, 2) + '</span></div>';
+const trow = (n, v) => '<div class="sw-row"><span>' + n + '</span><span class="l-' + S.level(v, 80, 90) + '">' + S.bar({ pct: v, warn: 80, crit: 90, ticks: false, h: 6 }) + '</span><span class="sw-mono">' + v + '&nbsp;°C</span></div>';
+const cores = [34, 28, 41, 22, 78, 36, 19, 31, 45, 25, 93, 30, 27, 38, 21, 33];
+
+const head = S.head('CPU', 'AMD Ryzen 7 7840HS · 8 cœurs / 16 threads',
+  S.badge('ok', 'Fréquence stable') + '<button class="sw-btn" type="button">' + S.icon('info', 15) + 'Détails du processeur</button>');
+
+const body = '<div class="sw-grid" style="grid-template-rows:128px 236px 1fr">' +
+  W('c3', S.metric({ label: 'Charge', pct: 34, value: '312', unit: 'processus', sub: '16 threads', series: S.walk(40, 34, 10, 3) })) +
+  W('c3', S.metric({ kind: 'bar', label: 'Température', pct: 61, warn: 80, crit: 90, value: '61', unit: '°C', sub: 'Tctl · pic 92 °C' })) +
+  W('c3', S.metric({ kind: 'text', label: 'Fréquence', pct: 40, warn: 101, crit: 101, value: '4,38', unit: 'GHz', sub: 'max 5,10 GHz', series: S.walk(40, 70, 14, 7) })) +
+  W('c3', S.metric({ kind: 'text', label: 'Puissance', pct: 40, warn: 101, crit: 101, value: '28', unit: 'W', sub: 'TDP 54 W', series: S.walk(40, 40, 12, 11) })) +
+  W('c8', S.card('Charge CPU', S.legend([['Total', 'var(--accent)'], ['Thread le plus chargé', 'var(--series-2)', 'd']]), '<div class="sw-chart" id="cpu-chart" style="flex:1"></div>')) +
+  W('c4', S.card('Charge par thread', '<span class="sw-sec">% par thread</span>', S.coreBars(cores))) +
+  W('c4', S.card('Températures', S.badge('ok', 'Normal'), '<div class="sw-rows">' + trow('Tctl (package)', 61) + trow('Tccd1 (cœurs)', 58) + trow('Cœur le plus chaud', 64) + trow('Carte mère', 52) + '</div>')) +
+  W('c4', S.card('Fréquence par cœur', '<span class="sw-sec">GHz</span>', '<div class="sw-rows">' + frow('Cœur 0', 4.38) + frow('Cœur 1', 4.12) + frow('Cœur 2', 4.51) + frow('Cœur 3', 3.84) + frow('Cœur 4', 4.96) + '</div>')) +
+  W('c4', S.card('Informations', '', S.kv([['Modèle', 'Ryzen 7 7840HS'], ['Cache L3', '16 Mo'], ['Gouverneur', 'powersave (EPP)'], ['Tension cœur', '1,12 V'], ['Allumé depuis', '3 h 42']]))) +
+  '</div>';
+
+S.mount(root, S.shell({ active: 'cpu', head, body }));
+S.chart(root.querySelector('#cpu-chart'), { label: 'Charge CPU sur 60 secondes', max: 100, unit: '%', series: [
+  { name: 'Total', color: 'var(--accent)', base: 34, amp: 12, seed: 3 },
+  { name: 'Thread le plus chargé', color: 'var(--series-2)', dash: '7 4', base: 62, amp: 22, seed: 8 }] });
+</script>

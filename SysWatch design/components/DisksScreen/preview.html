@@ -1,0 +1,34 @@
+<!-- @dsCard group="Écrans" height=800 width=1280 subtitle="Disques — SMART, lecture/écriture, espace par dossier" -->
+<div id="root"></div>
+<script>
+const S = SysWatch, root = document.getElementById('root');
+const W = (c, h) => '<div class="sw-w ' + c + '">' + h + '</div>';
+const head = S.head('Disques', 'nvme0n1 · Samsung 980 Pro · 2 To · monté sur /home',
+  S.seg([['n', 'nvme0n1'], ['a', 'sda · HDD'], ['b', 'sdb']], 'n'));
+
+const smart = '<div class="sw-card sw-metric bar l-ok"><div class="t" style="display:flex;justify-content:space-between;align-items:baseline"><span class="sw-label">Santé SMART</span>' + S.badge('ok', 'Bon') + '</div><div class="sw-val">98<small>% restant</small></div><span class="sw-sec">Usure 2 % · 4 212 h</span></div>';
+const folder = (n, g, pct, tag) => '<div class="sw-hb"><span class="nm" title="' + n + '">' + n + '</span><span class="l-ok">' + S.bar({ pct, warn: 101, crit: 101, ticks: false, h: 8 }) + '</span><span class="sw-mono">' + g + '</span></div>';
+const sm = (id, nm, val, thr, st) => '<tr><td class="n" style="text-align:left;color:var(--text-muted)">' + id + '</td><td>' + nm + '</td><td class="n">' + val + '</td><td class="n">' + thr + '</td><td>' + S.badge(st[0], st[1]) + '</td></tr>';
+
+const body = '<div class="sw-grid" style="grid-template-rows:128px 220px 1fr">' +
+  W('c3', smart) +
+  W('c3', S.metric({ kind: 'bar', label: 'Température', pct: 44, warn: 65, crit: 75, value: '44', unit: '°C', sub: 'pic 70 °C' })) +
+  W('c3', S.metric({ kind: 'text', label: 'Lecture', pct: 40, warn: 101, crit: 101, value: '412', unit: 'Mo/s', sub: 'pic 3,2 Go/s', series: S.walk(40, 50, 25, 4) })) +
+  W('c3', S.metric({ kind: 'text', label: 'Écriture', pct: 40, warn: 101, crit: 101, value: '128', unit: 'Mo/s', sub: 'pic 2,1 Go/s', series: S.walk(40, 30, 20, 6) })) +
+  W('c8', S.card('Lecture / écriture', S.legend([['Lecture', 'var(--accent)'], ['Écriture', 'var(--series-2)', 'd']]), '<div class="sw-chart" id="io-chart" style="flex:1"></div>')) +
+  W('c4', S.card('Espace disque', S.badge('crit', 'Presque plein'),
+    '<div class="sw-donut">' + S.ring({ pct: 91, size: 128, stroke: 14, warn: 80, crit: 90, label: 'Espace utilisé', fs: 26 }) +
+    '<div class="sw-lg2"><div><span><i style="--c:var(--crit)"></i>Utilisé</span><span class="sw-mono">1,82 To</span></div><div><span><i style="--c:var(--border);box-shadow:inset 0 0 0 1px var(--control-border)"></i>Libre</span><span class="sw-mono">0,18 To</span></div><div class="sw-sec">Seuils 80 / 90 %</div></div></div>')) +
+  W('c6', S.card('Espace par dossier', '<span class="sw-sec">sur 2 To</span>',
+    '<div class="sw-rows" style="justify-content:flex-start;gap:2px">' + folder('~/Jeux/Steam', '1,10 To', 55) + folder('~/Vidéos', '380 Go', 19) + folder('~/.cache', '96 Go', 4.8) + folder('~/Documents', '64 Go', 3.2) + folder('~/Projets', '41 Go', 2.1) + folder('Autres', '139 Go', 7) + '</div>')) +
+  W('c6', S.card('SMART · NVMe', '<span class="sw-sec">mis à jour il y a 12 s</span>',
+    '<table class="sw-table dense"><thead><tr><th>ID</th><th>Attribut</th><th class="n">Valeur</th><th class="n">Seuil</th><th>État</th></tr></thead><tbody>' +
+    sm('01', 'Avertissement critique', '0', '—', ['ok', 'OK']) + sm('03', 'Réserve disponible', '100 %', '10 %', ['ok', 'OK']) + sm('05', 'Usure (utilisé)', '2 %', '100 %', ['ok', 'OK']) +
+    sm('0A', 'Heures sous tension', '4 212 h', '—', ['ok', 'OK']) + sm('0C', 'Arrêts non sécurisés', '11', '—', ['warn', 'Attention']) + sm('0E', 'Erreurs média', '0', '—', ['ok', 'OK']) + '</tbody></table>')) +
+  '</div>';
+
+S.mount(root, S.shell({ active: 'disk', head, body }));
+S.chart(root.querySelector('#io-chart'), { label: 'Débit de lecture et d’écriture sur 60 secondes', unit: 'Mo/s', series: [
+  { name: 'Lecture', color: 'var(--accent)', base: 400, amp: 220, seed: 4 },
+  { name: 'Écriture', color: 'var(--series-2)', dash: '7 4', base: 130, amp: 90, seed: 6 }] });
+</script>

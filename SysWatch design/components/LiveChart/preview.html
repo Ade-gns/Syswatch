@@ -1,0 +1,17 @@
+<!-- @dsCard group="Composants" height=620 width=960 subtitle="Graphique en courbes temps réel — survol détaillé, 3 styles de trait" -->
+<div class="sw-stage" id="root" data-theme="dark" style="min-height:0;display:flex;flex-direction:column;gap:16px">
+  <div class="sw-card" style="height:268px"><div class="sw-card-h"><span class="sw-label">CPU · GPU · Mémoire</span><div id="l1"></div></div><div class="sw-chart" id="c1" style="flex:1"></div></div>
+  <div class="sw-card" style="height:268px"><div class="sw-card-h"><span class="sw-label">Réseau · échelle automatique</span><div id="l2"></div></div><div class="sw-chart" id="c2" style="flex:1"></div></div>
+</div>
+<script>
+const S = SysWatch;
+document.getElementById('l1').innerHTML = S.legend([['CPU', 'var(--accent)'], ['GPU', 'var(--series-2)', 'd'], ['Mémoire', 'var(--series-3)', 't']]);
+document.getElementById('l2').innerHTML = S.legend([['Réception', 'var(--accent)'], ['Émission', 'var(--series-2)', 'd']]);
+S.chart(document.getElementById('c1'), { max: 100, unit: '%', label: 'Charge CPU, GPU et mémoire', series: [
+  { name: 'CPU', color: 'var(--accent)', base: 34, amp: 12, seed: 3 },
+  { name: 'GPU', color: 'var(--series-2)', dash: '7 4', base: 12, amp: 8, seed: 5 },
+  { name: 'Mémoire', color: 'var(--series-3)', dash: '2 4', base: 80, amp: 2, seed: 9 }] });
+S.chart(document.getElementById('c2'), { unit: 'Mo/s', dec: 1, label: 'Débit réseau', series: [
+  { name: 'Réception', color: 'var(--accent)', base: 40, amp: 30, seed: 2, dec: 1 },
+  { name: 'Émission', color: 'var(--series-2)', dash: '7 4', base: 6, amp: 5, seed: 7, dec: 1 }] });
+</script>

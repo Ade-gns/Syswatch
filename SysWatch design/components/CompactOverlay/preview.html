@@ -1,0 +1,27 @@
+<!-- @dsCard group="Écrans" height=640 width=1280 subtitle="Widget compact toujours visible et overlay FPS du mode jeu" -->
+<div class="sw-stage" data-theme="dark" id="root" style="width:1280px;height:640px;display:flex;gap:24px"></div>
+<script>
+const S = SysWatch, root = document.getElementById('root');
+const dot = l => '<i class="sw-dot l-' + l + '"></i>';
+const bar = '<div class="sw-cmp bar" style="left:20px;top:24px">' +
+  '<span>' + dot('ok') + 'CPU <b>34 %</b></span><span>' + dot('ok') + 'GPU <b>12 %</b></span><span>' + dot('warn') + 'RAM <b>82 %</b></span><span>' + S.icon('down', 13) + '<b>42,8</b><small>Mo/s</small></span></div>';
+const ln = (n, v, p, l) => '<div class="ln l-' + l + '"><span>' + n + '</span>' + S.bar({ pct: p, ticks: false, h: 5 }) + '<span>' + v + '</span></div>';
+const card = '<div class="sw-cmp card" style="left:20px;top:112px"><div class="hd"><span>SysWatch</span><span>' + S.icon('temp', 12) + ' 61 °C</span></div>' + ln('CPU', '34 %', 34, 'ok') + ln('GPU', '12 %', 12, 'ok') + ln('RAM', '82 %', 82, 'warn') + ln('DSK', '91 %', 91, 'crit') + '</div>';
+const pill = '<div class="sw-cmp pill" style="left:272px;top:112px">' + dot('ok') + 'CPU 34 % · 61 °C</div>';
+const pill2 = '<div class="sw-cmp pill" style="left:272px;top:160px">' + dot('warn') + 'RAM 82 %</div>';
+const ft = S.spark(S.walk(60, 7, 1.4, 4, 20), { min: 0, max: 16, h: 38 });
+const std = '<div class="sw-cmp sw-fps" style="left:16px;top:16px;width:218px"><div class="big l-ok"><b>144</b><span>FPS</span></div><div class="ft"><span>6,9 ms</span><span>1 % bas 98</span></div><hr>' +
+  '<div class="rw"><span>CPU</span><span>41 % · 63 °C</span></div><div class="rw"><span>GPU</span><span>97 % · 71 °C</span></div><div class="rw"><span>RAM</span><span>9,1 / 16 Go</span></div><div class="rw"><span>VRAM</span><span>5,2 / 8 Go</span></div></div>';
+const min = '<div class="sw-cmp pill" style="right:16px;top:16px;height:36px;font-size:14px">' + dot('ok') + '<b>144</b> FPS</div>';
+const det = '<div class="sw-cmp sw-fps" style="left:16px;bottom:16px;width:272px"><div class="big l-warn"><b>47</b><span>FPS</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:var(--text)">' + dot('warn') + 'sous la cible 60</span></div><div class="l-warn" style="margin:6px 0 2px">' + ft + '</div><div class="ft"><span>Temps de trame 21,3 ms</span><span>pic 34 ms</span></div><hr>' +
+  '<div class="rw"><span>CPU</span><span>78 % · 81 °C</span></div><div class="rw"><span>GPU</span><span>99 % · 84 °C</span></div><div class="rw"><span>Réseau</span><span>↓ 6,2 Mo/s · 31 ms</span></div></div>';
+
+root.innerHTML =
+  '<section style="width:520px;display:flex;flex-direction:column;gap:12px"><span class="sw-label">Widget compact · toujours visible</span><div class="sw-desk" style="flex:1">' +
+  '<div class="grid-bg"></div>' + bar + card + pill + pill2 +
+  '<span class="cap" style="left:20px;bottom:56px;max-width:300px">Barre · Carte · Pastille. Fond translucide, pas de focus volé, clic traversant.</span><span class="cap">Bureau — exemple</span></div></section>' +
+  '<section style="flex:1;display:flex;flex-direction:column;gap:12px"><span class="sw-label">Overlay du mode jeu · Ctrl + Maj + F</span>' +
+  '<div class="sw-vp" style="height:252px"><div class="grid-bg"></div>' + std + min + '<span class="cap" style="left:auto;right:14px">Standard + minimal</span></div>' +
+  '<div class="sw-vp" style="height:296px"><div class="grid-bg"></div>' + det + '<span class="cap" style="left:auto;right:14px;bottom:10px">Détaillé : la couleur et le mot signalent un FPS sous la cible</span></div></section>';
+S.wire(root);
+</script>

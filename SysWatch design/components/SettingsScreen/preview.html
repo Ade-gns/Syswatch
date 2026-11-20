@@ -1,0 +1,56 @@
+<!-- @dsCard group="Écrans" height=800 width=1280 subtitle="Paramètres — thème, couleur d'accent, widget, mode jeu (interactif)" -->
+<div id="root"></div>
+<script>
+const S = SysWatch, root = document.getElementById('root');
+const W = (c, h) => '<div class="sw-w ' + c + '">' + h + '</div>';
+const set = (t, d, ctl) => '<div class="sw-set"><div><div>' + t + '</div>' + (d ? '<div class="d">' + d + '</div>' : '') + '</div>' + ctl + '</div>';
+const chk = (l, on) => '<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input class="sw-chk" type="checkbox"' + (on ? ' checked' : '') + '>' + l + '</label>';
+const corner = p => '<div class="sw-corner" data-radio role="group" aria-label="Position">' + ['hg', 'hd', 'bg', 'bd'].map(k => '<button type="button" aria-pressed="' + (k === p) + '" aria-label="' + k + '"></button>').join('') + '</div>';
+
+const sw = S.presets.map((p, i) => '<button type="button" class="sw-sw" data-id="' + p.id + '" aria-label="' + p.name + '" aria-pressed="' + (i === 0) + '" style="--c:' + p.dark + '"></button>').join('');
+const preview = '<div style="display:flex;align-items:center;gap:20px;padding-top:12px;border-top:1px solid var(--border)"><span class="sw-label">Aperçu</span>' +
+  S.ring({ pct: 34, size: 56, stroke: 6, label: 'Normal' }) + S.ring({ pct: 82, size: 56, stroke: 6, label: 'Attention' }) + S.ring({ pct: 94, size: 56, stroke: 6, label: 'Critique' }) +
+  '<div style="display:flex;flex-direction:column;gap:8px;flex:1"><div class="l-ok">' + S.bar({ pct: 58, h: 8 }) + '</div><div style="display:flex;gap:8px"><button class="sw-btn pri sm" type="button">Primaire</button>' + S.badge('acc', 'Accent') + '</div></div></div>';
+
+const appearance = S.card('Apparence', '',
+  set('Thème', 'Clair, sombre ou celui du système', S.seg([['dark', 'Sombre', 'moon'], ['light', 'Clair', 'sun'], ['sys', 'Système']], 'dark', 'theme')) +
+  '<div class="sw-set" style="flex-direction:column;align-items:stretch;gap:10px;padding:12px 0"><div><div>Couleur d’accent</div><div class="d">Jauges, courbes et éléments actifs. Les alertes restent jaune et rouge.</div></div>' +
+  '<div class="sw-swatches" data-radio role="group" aria-label="Préréglages d’accent">' + sw + '</div>' +
+  '<div style="display:flex;gap:10px;align-items:center"><input class="sw-colorin" type="color" value="#00d4ff" aria-label="Choisir une couleur personnalisée"><input class="sw-input" id="hex" value="#00D4FF" style="width:112px" aria-label="Code hexadécimal"><span class="d">Personnalisée</span></div></div>' + preview);
+
+const general = S.card('Général', '',
+  set('Lancer au démarrage', 'Démarre réduit dans la zone de notification', S.switchEl(true, 'Lancer au démarrage')) +
+  set('Fréquence de rafraîchissement', 'Plus rapide = un peu plus de CPU', S.seg([['500', '0,5 s'], ['1', '1 s'], ['2', '2 s']], '1')) +
+  set('Unités de température', '', S.seg([['c', '°C'], ['f', '°F']], 'c')));
+
+const widget = S.card('Widget compact', S.badge('ok', 'Actif'),
+  set('Afficher le widget', 'Toujours visible sur le bureau', S.switchEl(true, 'Afficher le widget')) +
+  set('Style', '', S.seg([['bar', 'Barre'], ['card', 'Carte'], ['pill', 'Pastille']], 'bar')) +
+  set('Position', '', corner('hd')) +
+  set('Opacité', '', '<div style="display:flex;align-items:center;gap:10px;width:170px"><input class="sw-range" type="range" min="30" max="100" value="85" aria-label="Opacité du widget"><span class="sw-sec" style="width:44px;text-align:right">85 %</span></div>') +
+  set('Toujours au premier plan', '', S.switchEl(true, 'Toujours au premier plan')));
+
+const game = S.card('Mode jeu', S.badge('s-acc'.slice(2), 'Overlay prêt'),
+  set('Overlay FPS en jeu', 'Affiché par-dessus la fenêtre du jeu', S.switchEl(true, 'Overlay FPS')) +
+  set('Détecter les jeux automatiquement', 'Steam, Lutris, Heroic', S.switchEl(true, 'Détection automatique')) +
+  '<div class="sw-set" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px 0"><div>Éléments affichés</div><div style="display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:8px 22px">' +
+  chk('FPS', 1) + chk('CPU', 1) + chk('GPU', 1) + chk('RAM', 1) + chk('VRAM', 1) + chk('Temp.', 1) + chk('Réseau', 0) + chk('Batterie', 0) + '</div></div>' +
+  set('Raccourci', 'Afficher / masquer l’overlay', '<span><span class="sw-kbd">Ctrl</span> + <span class="sw-kbd">Maj</span> + <span class="sw-kbd">F</span></span>'));
+
+const head = S.head('Paramètres', 'Apparence, widget compact et mode jeu');
+const body = '<div class="sw-grid" style="grid-template-columns:7fr 5fr;grid-template-rows:1fr"><div style="display:flex;flex-direction:column;gap:16px;min-height:0">' +
+  W('', appearance) + W('', general) + '</div><div style="display:flex;flex-direction:column;gap:16px;min-height:0">' + W('', widget) + W('', game) + '</div></div>';
+
+const app = S.mount(root, S.shell({ active: 'cog', head, body }));
+app.querySelectorAll('.sw-grid > div').forEach(c => { c.style.minWidth = 0; });
+const hex = root.querySelector('#hex'), col = root.querySelector('.sw-colorin');
+function refresh() { const th = app.getAttribute('data-theme'); root.querySelectorAll('.sw-sw').forEach(b => { const p = S.presets.filter(x => x.id === b.dataset.id)[0]; b.style.setProperty('--c', p[th]); }); }
+root.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.classList.contains('sw-sw')) { app.dataset.accent = b.dataset.id; S.applyAccent(app); const p = S.presets.filter(x => x.id === b.dataset.id)[0], v = p[app.getAttribute('data-theme')]; hex.value = v.toUpperCase(); col.value = v; }
+  if (b.dataset.k === 'theme') { const v = b.dataset.v; app.setAttribute('data-theme', v === 'light' ? 'light' : 'dark'); S.applyAccent(app); refresh(); }
+});
+col.addEventListener('input', () => { app.dataset.accent = col.value; S.applyAccent(app); hex.value = col.value.toUpperCase(); root.querySelectorAll('.sw-sw').forEach(b => b.setAttribute('aria-pressed', 'false')); });
+hex.addEventListener('change', () => { if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) { col.value = hex.value; col.dispatchEvent(new Event('input')); } });
+root.querySelector('.sw-range').addEventListener('input', e => { e.target.nextElementSibling.textContent = e.target.value + ' %'; });
+</script>

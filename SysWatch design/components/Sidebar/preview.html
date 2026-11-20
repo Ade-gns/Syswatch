@@ -1,0 +1,17 @@
+<!-- @dsCard group="Composants" height=688 width=960 subtitle="Barre latérale — dépliée et repliée (cliquer sur Replier)" -->
+<div class="sw-stage" id="root" style="display:flex;gap:32px;align-items:flex-start;min-height:0">
+  <div style="display:flex;flex-direction:column;gap:8px"><span class="sw-label">Dépliée · 216 px</span><div class="sw-sidewrap" data-theme="dark" id="a"></div></div>
+  <div style="display:flex;flex-direction:column;gap:8px"><span class="sw-label">Repliée · 64 px</span><div class="sw-sidewrap is-collapsed" data-theme="dark" id="b"></div></div>
+  <div style="flex:1;max-width:300px;display:flex;flex-direction:column;gap:12px;padding-top:28px;font-size:13px;color:var(--text-muted)">
+    <span class="sw-label">États</span>
+    <div>Page active : fond teinté d’accent, icône d’accent, libellé en gras.</div>
+    <div>Pastille rouge sur Alertes : nombre d’alertes non lues, avec son chiffre.</div>
+    <div>En bas : bouton Replier et mémoire utilisée par SysWatch lui-même, discrète.</div>
+  </div>
+</div>
+<script>
+const S = SysWatch;
+const a = document.getElementById('a'), b = document.getElementById('b');
+a.innerHTML = S.sidebar('cpu'); b.innerHTML = S.sidebar('cpu', true);
+S.wire(a); S.wire(b);
+</script>

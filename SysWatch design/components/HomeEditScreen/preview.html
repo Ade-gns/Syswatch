@@ -1,0 +1,7 @@
+<!-- @dsCard group="Écrans" height=800 width=1280 subtitle="Accueil — mode édition (déplacer, redimensionner, retirer, ajouter)" -->
+<div id="root"></div>
+<script>
+const root = document.getElementById('root');
+SysWatch.mount(root, SysWatch.homePage({ edit: true }));
+SysWatch.homeInit(root);
+</script>

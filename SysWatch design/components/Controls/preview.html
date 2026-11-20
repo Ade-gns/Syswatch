@@ -1,0 +1,25 @@
+<!-- @dsCard group="Composants" height=620 width=960 subtitle="Boutons, segmenté, interrupteur, curseur, couleur, badges" -->
+<div class="sw-stage" id="root" data-theme="dark" style="min-height:0"></div>
+<script>
+const S = SysWatch, root = document.getElementById('root');
+const row = (l, h) => '<div class="sw-set" style="flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:10px 0;min-height:0"><div class="sw-label">' + l + '</div><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">' + h + '</div></div>';
+const sw = S.presets.map((p, i) => '<button type="button" class="sw-sw" aria-label="' + p.name + '" aria-pressed="' + (i === 0) + '" style="--c:' + p.dark + '"></button>').join('');
+root.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+  '<div class="sw-card">' +
+    row('Boutons', '<button class="sw-btn pri" type="button">Appliquer</button><button class="sw-btn" type="button">Annuler</button><button class="sw-btn dng" type="button">' + S.icon('x', 14) + 'Fermer</button>') +
+    row('Segmenté', S.seg([['a', 'Faible'], ['b', 'Moyen'], ['c', 'Fort']], 'b')) +
+    row('Interrupteur', S.switchEl(true, 'Activé') + S.switchEl(false, 'Désactivé')) +
+    row('Curseur', '<div style="width:220px"><input class="sw-range" type="range" min="0" max="100" value="60" aria-label="Valeur"></div>') +
+    row('Champs', '<div class="sw-search">' + S.icon('search', 15) + '<input class="sw-input" placeholder="Rechercher" aria-label="Rechercher"></div><input class="sw-input" value="#00D4FF" style="width:100px" aria-label="Couleur">') +
+    row('Petit bouton · touches', '<button class="sw-btn sm" type="button">Petit</button>' + '&nbsp;' + '<span class="sw-kbd">Ctrl</span><span class="sw-kbd">Maj</span><span class="sw-kbd">F</span>') +
+  '</div>' +
+  '<div class="sw-card">' +
+    row('Accent', '<div class="sw-swatches" data-radio>' + sw + '</div>') +
+    row('Badges', S.badge('ok', 'Bon') + S.badge('warn', 'Attention') + S.badge('crit', 'Critique') + S.badge('acc', 'Actif')) +
+    row('Jauges', S.ring({ pct: 34, size: 48, stroke: 6, label: 'Normal' }) + S.ring({ pct: 82, size: 48, stroke: 6, label: 'Attention' }) + S.ring({ pct: 94, size: 48, stroke: 6, label: 'Critique' })) +
+    row('Barres', '<div style="width:220px;display:flex;flex-direction:column;gap:10px">' + S.bar({ pct: 40 }) + S.bar({ pct: 80 }) + S.bar({ pct: 95 }) + '</div>') +
+    row('Coches', '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input class="sw-chk" type="checkbox" checked>FPS</label><label style="display:flex;gap:8px;align-items:center;font-size:13px"><input class="sw-chk" type="checkbox">Réseau</label>') +
+    row('Position', '<div class="sw-corner" data-radio><button type="button" aria-pressed="false" aria-label="Haut gauche"></button><button type="button" aria-pressed="true" aria-label="Haut droite"></button><button type="button" aria-pressed="false" aria-label="Bas gauche"></button><button type="button" aria-pressed="false" aria-label="Bas droite"></button></div>') +
+  '</div></div>';
+S.wire(root);
+</script>

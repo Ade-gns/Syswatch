@@ -1,0 +1,29 @@
+<!-- @dsCard group="Écrans" height=800 width=1280 subtitle="Ventilateurs — Faible / Moyen / Fort, Auto, profils, courbe" -->
+<div id="root"></div>
+<script>
+const S = SysWatch, root = document.getElementById('root');
+const W = (c, h) => '<div class="sw-w ' + c + '">' + h + '</div>';
+const prof = (id, ic, nm, d, on) => '<button type="button" class="sw-card sw-prof" aria-pressed="' + on + '" data-id="' + id + '"><span class="ico">' + S.icon(ic, 20) + '</span><span class="tx"><b>' + nm + '</b><span>' + d + '</span></span>' + (on ? S.badge('acc', 'Actif') : '') + '</button>';
+const trow = (n, v, w, c) => '<div class="sw-row"><span>' + n + '</span><span class="l-' + S.level(v, w, c) + '">' + S.bar({ pct: v, warn: w, crit: c, ticks: false, h: 6 }) + '</span><span class="sw-mono">' + v + '&nbsp;°C</span></div>';
+
+const head = S.head('Ventilateurs', '2 ventilateurs détectés · pilotage via hwmon',
+  '<span class="sw-sec">Profil</span>' + S.seg([['sil', 'Silencieux', 'moon'], ['jeu', 'Jeu', 'game'], ['perf', 'Performance', 'bolt']], 'jeu'));
+
+const body = '<div class="sw-grid" style="grid-template-rows:88px 336px 1fr">' +
+  W('c4', prof('sil', 'moon', 'Silencieux', 'Max 2 800 tr/min · bruit minimal', false)) +
+  W('c4', prof('jeu', 'game', 'Jeu', 'Monte dès 60 °C · équilibré', true)) +
+  W('c4', prof('perf', 'bolt', 'Performance', 'Refroidissement maximal', false)) +
+  W('c5', S.card('Contrôle', S.badge('acc', 'Auto'), '<div id="fc"></div>')) +
+  W('c7', S.card('Courbe température → vitesse', '<span class="sw-sec">Glissez les points · flèches au clavier</span>', '<div id="curve" style="flex:1;min-height:0"></div>')) +
+  W('c8', S.card('Historique', S.legend([['Température CPU', 'var(--accent)'], ['Vitesse ventilateur', 'var(--series-2)', 'd']]), '<div class="sw-chart" id="fan-chart" style="flex:1"></div>')) +
+  W('c4', S.card('Capteurs', '<span class="sw-sec">°C</span>', '<div class="sw-rows">' + trow('CPU', 61, 80, 90) + trow('GPU', 48, 80, 90) + trow('SSD NVMe', 69, 65, 75) + trow('Châssis', 36, 55, 70) + '</div>')) +
+  '</div>';
+
+S.mount(root, S.shell({ active: 'fan', head, body }));
+const fc = S.fanControl(root.querySelector('#fc'), { autoSpeed: 52 });
+S.curve(root.querySelector('#curve'), { temp: 61, h: 250, onchange: s => fc.setAuto(s) });
+S.chart(root.querySelector('#fan-chart'), { label: 'Température CPU et vitesse du ventilateur', max: 100, series: [
+  { name: 'Température CPU', color: 'var(--accent)', base: 61, amp: 5, seed: 12, unit: '°C' },
+  { name: 'Vitesse ventilateur', color: 'var(--series-2)', dash: '7 4', base: 52, amp: 7, seed: 15, unit: '%' }] });
+root.addEventListener('click', e => { const p = e.target.closest('.sw-prof'); if (!p) return; root.querySelectorAll('.sw-prof').forEach(b => { const on = b === p; b.setAttribute('aria-pressed', on); const bd = b.querySelector('.sw-badge'); if (bd) bd.remove(); if (on) b.insertAdjacentHTML('beforeend', S.badge('acc', 'Actif')); }); });
+</script>

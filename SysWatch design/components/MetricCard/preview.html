@@ -1,0 +1,23 @@
+<!-- @dsCard group="Composants" height=640 width=960 subtitle="Carte de métrique — jauge circulaire, barre, valeur + mini-courbe ; normal / attention / critique" -->
+<div class="sw-stage" id="root" data-theme="dark" style="min-height:0">
+  <div id="g" style="display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:128px;gap:16px"></div>
+</div>
+<script>
+const S = SysWatch;
+const cap = t => '<div class="sw-sec" style="grid-column:1/-1;margin-top:8px">' + t + '</div>';
+const g = document.getElementById('g');
+g.style.gridAutoRows = 'auto';
+g.innerHTML =
+  cap('Jauge circulaire · normal sous 75 % (accent), attention dès 75 % (jaune), critique dès 90 % (rouge)') +
+  S.metric({ label: 'CPU', pct: 34, value: '4,38', unit: 'GHz', sub: '61 °C', series: S.walk(40, 34, 10, 3) }) +
+  S.metric({ label: 'Mémoire', pct: 82, value: '13,1', unit: 'Go', sub: 'sur 16 Go', series: S.walk(40, 80, 3, 9) }) +
+  S.metric({ label: 'GPU', pct: 96, value: '84', unit: '°C', sub: 'VRAM 7,4 Go', series: S.walk(40, 92, 5, 21) }) +
+  cap('Barre avec repères aux seuils · le badge porte le mot, jamais la couleur seule') +
+  S.metric({ kind: 'bar', label: 'Disque /', pct: 54, warn: 80, crit: 90, value: '1,08', unit: 'To', sub: 'sur 2 To' }) +
+  S.metric({ kind: 'bar', label: 'Disque /home', pct: 83, warn: 80, crit: 90, value: '1,66', unit: 'To', sub: 'sur 2 To' }) +
+  S.metric({ kind: 'bar', label: 'Disque /var', pct: 94, warn: 80, crit: 90, value: '188', unit: 'Go', sub: 'sur 200 Go' }) +
+  cap('Valeur + mini-courbe, sans seuil') +
+  S.metric({ kind: 'text', label: 'Fréquence', pct: 40, warn: 101, crit: 101, value: '4,38', unit: 'GHz', sub: 'max 5,10 GHz', series: S.walk(40, 70, 14, 7) }) +
+  S.metric({ kind: 'text', label: 'Puissance', pct: 40, warn: 101, crit: 101, value: '28', unit: 'W', sub: 'TDP 54 W', series: S.walk(40, 40, 12, 11) }) +
+  S.metric({ kind: 'text', label: 'Réseau ↓', pct: 40, warn: 101, crit: 101, value: '42,8', unit: 'Mo/s', sub: 'ping 14 ms', series: S.walk(40, 50, 25, 4) });
+</script>

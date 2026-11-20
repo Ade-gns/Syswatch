@@ -1,0 +1,10 @@
+<!-- @dsCard group="Composants" height=470 width=960 subtitle="Contrôle des ventilateurs — Faible / Moyen / Fort, bascule Auto, éditeur de courbe" -->
+<div class="sw-stage" id="root" data-theme="dark" style="min-height:0;display:grid;grid-template-columns:400px 1fr;gap:16px;align-items:stretch">
+  <div class="sw-card"><div class="sw-card-h"><span class="sw-label">Contrôle</span></div><div id="fc"></div></div>
+  <div class="sw-card"><div class="sw-card-h"><span class="sw-label">Courbe température → vitesse</span><span class="sw-sec">glisser · flèches</span></div><div id="curve"></div></div>
+</div>
+<script>
+const S = SysWatch;
+const fc = S.fanControl(document.getElementById('fc'), { autoSpeed: 52 });
+S.curve(document.getElementById('curve'), { temp: 61, h: 270, onchange: s => fc.setAuto(s) });
+</script>
