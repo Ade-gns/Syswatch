@@ -7,7 +7,7 @@ import { PageHeader } from '../components/Shell';
 import { duration, ghz, num, shortCpuName, temp, tempStr, withUnit } from '../lib/format';
 import { level, NO_THRESHOLD, THRESHOLDS, worst } from '../lib/levels';
 import { useSettings } from '../lib/settings';
-import { tail, useLive } from '../lib/store';
+import { normalized, tail, useLive } from '../lib/store';
 
 const SPARK = 40;
 const TEMP_WORDS = { ok: 'Température normale', warn: 'Température élevée', crit: 'Température critique' } as const;
@@ -56,7 +56,7 @@ export function CpuPage() {
         <Widget span={3}>
           {cpu.powerW != null ? (
             <MetricCard kind="text" label="Puissance" pct={0} value={num(cpu.powerW)} unit="W" sub={caps.cpuPower.detail.replace(' (amdgpu)', '')}
-              series={powerSeries(tail(series.cpuPower, SPARK))} title={`Source : ${caps.cpuPower.detail}`} />
+              series={normalized(tail(series.cpuPower, SPARK))} title={`Source : ${caps.cpuPower.detail}`} />
           ) : (
             <MetricCard kind="text" label="Puissance" pct={0} value="—" sub="Non disponible" title={caps.cpuPower.detail} />
           )}
@@ -119,8 +119,3 @@ export function CpuPage() {
   );
 }
 
-/** Mini-courbe de puissance ramenée sur 0–100 par rapport au maximum observé. */
-function powerSeries(v: number[]) {
-  const m = Math.max(1, ...v.filter(Number.isFinite));
-  return v.map(x => (x / m) * 100);
-}

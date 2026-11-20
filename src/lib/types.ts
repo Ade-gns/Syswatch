@@ -15,13 +15,84 @@ export interface CpuSnapshot {
   sensors: TempReading[];
 }
 
-export interface MemorySnapshot { total: number; used: number; available: number; swapTotal: number; swapUsed: number }
+export interface MemorySnapshot {
+  total: number;
+  used: number;
+  available: number;
+  free: number;
+  cached: number;
+  buffers: number;
+  shared: number;
+  dirty: number;
+  swapTotal: number;
+  swapUsed: number;
+  swapCached: number;
+  swapKind: 'zram' | 'partition' | 'fichier' | null;
+}
+
+export type SensorKind = 'cpu' | 'gpu' | 'ssd' | 'ram' | 'board' | 'battery' | 'wifi' | 'other';
+export interface SensorReading { id: string; label: string; kind: SensorKind; valueC: number; critC: number | null }
+export interface FanReading { id: string; label: string; rpm: number | null; pct: number | null }
+
+export type GpuState = 'active' | 'sleeping' | 'unavailable';
+export interface GpuSnapshot {
+  id: string;
+  state: GpuState;
+  detail: string | null;
+  usage: number | null;
+  tempC: number | null;
+  powerW: number | null;
+  coreMhz: number | null;
+  memMhz: number | null;
+  vramUsed: number | null;
+  vramTotal: number | null;
+  fanPct: number | null;
+  fanRpm: number | null;
+  processes: number | null;
+}
+
+export interface GpuInfo {
+  id: string;
+  name: string;
+  vendor: string;
+  driver: string;
+  integrated: boolean;
+  maxCoreMhz: number | null;
+  maxMemMhz: number | null;
+  powerLimitW: number | null;
+  powerShared: boolean;
+  driverVersion: string | null;
+}
+
+export type BatteryStatus = 'charging' | 'discharging' | 'full' | 'notCharging' | 'unknown';
+export interface BatterySnapshot {
+  id: string;
+  status: BatteryStatus;
+  percent: number;
+  energyNowWh: number | null;
+  energyFullWh: number | null;
+  energyDesignWh: number | null;
+  wearPct: number | null;
+  cycles: number | null;
+  powerW: number | null;
+  voltageV: number | null;
+  timeLeftS: number | null;
+  chargeLimit: number | null;
+  technology: string | null;
+  manufacturer: string | null;
+  model: string | null;
+}
 
 export interface Snapshot {
   t: number;
   uptimeS: number;
   cpu: CpuSnapshot;
   memory: MemorySnapshot;
+  sensors: SensorReading[];
+  fans: FanReading[];
+  gpus: GpuSnapshot[];
+  batteries: BatterySnapshot[];
+  acOnline: boolean | null;
   selfMemBytes: number | null;
 }
 
@@ -44,7 +115,8 @@ export interface SystemInfo {
   kernel: string | null;
   bootTimeS: number;
   cpu: CpuInfo;
-  capabilities: { cpuTemp: Feature; cpuPower: Feature; cpuFreq: Feature };
+  gpus: GpuInfo[];
+  capabilities: { cpuTemp: Feature; cpuPower: Feature; cpuFreq: Feature; nvml: Feature; battery: Feature };
 }
 
 export interface Settings {

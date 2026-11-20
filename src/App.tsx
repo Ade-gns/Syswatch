@@ -3,12 +3,15 @@ import { Card, Empty } from './components/Card';
 import { PAGES, PageHeader, Sidebar, Titlebar, type PageId } from './components/Shell';
 import { updateSettings, useSettings } from './lib/settings';
 import { useLive } from './lib/store';
+import { BatteryPage } from './pages/BatteryPage';
 import { CpuPage } from './pages/CpuPage';
+import { GpuPage } from './pages/GpuPage';
 import { HomePage } from './pages/HomePage';
+import { MemoryPage } from './pages/MemoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 /** Étape de livraison prévue pour chaque page pas encore construite. */
-const PLANNED: Partial<Record<PageId, number>> = { gpu: 2, ram: 2, bat: 2, proc: 3, net: 3, boot: 3, disk: 4, fan: 5, alert: 6 };
+const PLANNED: Partial<Record<PageId, number>> = { proc: 3, net: 3, boot: 3, disk: 4, fan: 5, alert: 6 };
 
 function Placeholder({ id }: { id: PageId }) {
   const name = PAGES.find(p => p !== '|' && p[0] === id)?.[1] ?? '';
@@ -49,7 +52,8 @@ export function App() {
       <div className="sw-body">
         <SelfMemFooter page={page} onNavigate={setPage} collapsed={settings.sidebarCollapsed} />
         <main className="sw-main">
-          {page === 'home' ? <HomePage /> : page === 'cpu' ? <CpuPage /> : page === 'cog' ? <SettingsPage /> : <Placeholder id={page} />}
+          {page === 'home' ? <HomePage /> : page === 'cpu' ? <CpuPage /> : page === 'gpu' ? <GpuPage /> : page === 'ram' ? <MemoryPage />
+            : page === 'bat' ? <BatteryPage /> : page === 'cog' ? <SettingsPage /> : <Placeholder id={page} />}
         </main>
       </div>
     </div>

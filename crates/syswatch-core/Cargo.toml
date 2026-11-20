@@ -9,6 +9,7 @@ license.workspace = true
 serde.workspace = true
 sysinfo.workspace = true
 log.workspace = true
+nvml-wrapper = "0.13.0"
 
 [dev-dependencies]
 serde_json.workspace = true

@@ -1,33 +1,34 @@
 // Dernière mesure + historique glissant des séries tracées. Pas de bibliothèque d'état :
 // un petit store externe lu par useSyncExternalStore.
+//
+// Les séries sont indexées par clé : fixes (« cpu », « ram »…) ou par appareil
+// (« gpu:0000:01:00.0:usage »). Une série qui apparaît en cours de route est complétée
+// de NaN pour rester alignée sur les horodatages ; NaN = trou dans la courbe.
 import { useSyncExternalStore } from 'react';
 import type { Snapshot, SystemInfo } from './types';
 
-export type SeriesKey = 'cpu' | 'cpuMaxThread' | 'ram' | 'cpuTemp' | 'cpuFreqPct' | 'cpuPower';
+export type Series = Record<string, number[]>;
 
 interface State {
   latest: Snapshot | null;
   info: SystemInfo | null;
   /** Horodatages (ms) alignés sur chaque série. */
   times: number[];
-  series: Record<SeriesKey, number[]>;
+  series: Series;
+  /** Maximum observé depuis le lancement, par clé de série. */
+  peaks: Record<string, number>;
   version: number;
 }
 
-const KEYS: SeriesKey[] = ['cpu', 'cpuMaxThread', 'ram', 'cpuTemp', 'cpuFreqPct', 'cpuPower'];
-const state: State = {
-  latest: null,
-  info: null,
-  times: [],
-  series: Object.fromEntries(KEYS.map(k => [k, []])) as unknown as Record<SeriesKey, number[]>,
-  version: 0,
-};
+const state: State = { latest: null, info: null, times: [], series: {}, peaks: {}, version: 0 };
 let historyMs = 60_000;
 const listeners = new Set<() => void>();
 const emit = () => {
   state.version++;
   listeners.forEach(l => l());
 };
+
+export const gpuKey = (id: string, m: 'usage' | 'temp' | 'power' | 'vram') => `gpu:${id}:${m}`;
 
 export function setSystemInfo(info: SystemInfo) {
   state.info = info;
@@ -47,23 +48,50 @@ function trim() {
   while (drop < state.times.length - 1 && now - state.times[drop + 1] >= historyMs) drop++;
   if (drop > 0) {
     state.times.splice(0, drop);
-    KEYS.forEach(k => state.series[k].splice(0, drop));
+    Object.values(state.series).forEach(v => v.splice(0, drop));
   }
 }
 
-export function pushSnapshot(s: Snapshot) {
+const pct = (a: number, b: number) => (b > 0 ? (a / b) * 100 : NaN);
+const orNaN = (v: number | null | undefined) => v ?? NaN;
+
+/** Valeurs tracées extraites d'une mesure. */
+function extract(s: Snapshot): Record<string, number> {
   const maxFreq = state.info?.cpu.maxFreqMhz ?? null;
-  const values: Record<SeriesKey, number> = {
+  const v: Record<string, number> = {
     cpu: s.cpu.usage,
     cpuMaxThread: s.cpu.perThread.length ? Math.max(...s.cpu.perThread) : 0,
-    ram: s.memory.total ? (s.memory.used / s.memory.total) * 100 : 0,
-    cpuTemp: s.cpu.tempC ?? NaN,
+    ram: pct(s.memory.used, s.memory.total),
+    swap: pct(s.memory.swapUsed, s.memory.swapTotal),
+    cpuTemp: orNaN(s.cpu.tempC),
     cpuFreqPct: s.cpu.freqMhz != null && maxFreq ? (s.cpu.freqMhz / maxFreq) * 100 : NaN,
-    cpuPower: s.cpu.powerW ?? NaN,
+    cpuPower: orNaN(s.cpu.powerW),
   };
+  for (const g of s.gpus) {
+    v[gpuKey(g.id, 'usage')] = orNaN(g.usage);
+    v[gpuKey(g.id, 'temp')] = orNaN(g.tempC);
+    v[gpuKey(g.id, 'power')] = orNaN(g.powerW);
+    v[gpuKey(g.id, 'vram')] = g.vramUsed != null && g.vramTotal ? pct(g.vramUsed, g.vramTotal) : NaN;
+  }
+  const b = s.batteries[0];
+  if (b) {
+    v.batLevel = b.percent;
+    v.batPower = orNaN(b.powerW);
+  }
+  return v;
+}
+
+export function pushSnapshot(s: Snapshot) {
+  const values = extract(s);
+  const n = state.times.length;
+  for (const k of Object.keys(values)) {
+    if (!state.series[k]) state.series[k] = new Array(n).fill(NaN);
+    const x = values[k];
+    if (Number.isFinite(x) && !(x <= (state.peaks[k] ?? -Infinity))) state.peaks[k] = x;
+  }
   state.latest = s;
   state.times.push(s.t);
-  KEYS.forEach(k => state.series[k].push(values[k]));
+  for (const k of Object.keys(state.series)) state.series[k].push(values[k] ?? NaN);
   trim();
   emit();
 }
@@ -74,11 +102,20 @@ const subscribe = (l: () => void) => {
 };
 const getVersion = () => state.version;
 
+const EMPTY: number[] = [];
+
 /** Abonne le composant à chaque nouvelle mesure et renvoie l'état courant. */
 export function useLive() {
   useSyncExternalStore(subscribe, getVersion);
-  return { snap: state.latest, info: state.info, times: state.times, series: state.series, historyMs };
+  const get = (k: string) => state.series[k] ?? EMPTY;
+  return { snap: state.latest, info: state.info, times: state.times, series: state.series, get, peaks: state.peaks, historyMs };
 }
 
 /** Les N dernières valeurs d'une série (mini-courbes des cartes de métrique). */
-export const tail = (v: number[], n: number) => v.slice(Math.max(0, v.length - n));
+export const tail = (v: number[] | undefined, n: number) => (v ?? EMPTY).slice(Math.max(0, (v ?? EMPTY).length - n));
+
+/** Série ramenée sur 0–100 par rapport à son maximum (mini-courbes de puissance). */
+export function normalized(v: number[]) {
+  const m = Math.max(1, ...v.filter(Number.isFinite));
+  return v.map(x => (x / m) * 100);
+}

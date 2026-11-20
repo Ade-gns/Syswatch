@@ -1,33 +1,83 @@
 //! Collecte des mesures système de SysWatch. Tout est lu localement (sysfs, procfs),
 //! sans droits root ; les mesures qui en exigent passent par le service privilégié.
 
+pub mod battery;
 pub mod cpu;
+pub mod gpu;
 pub mod hwmon;
+pub mod memory;
 pub mod model;
 pub mod selfmem;
+pub mod sensors;
 pub mod sysfs;
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use sysinfo::{MemoryRefreshKind, System};
+use sysinfo::System;
 
+use battery::Batteries;
 use cpu::CpuCollector;
-use model::{Capabilities, MemorySnapshot, Snapshot, SystemInfo};
+use gpu::Gpus;
+use model::{BatterySnapshot, Capabilities, Feature, FanReading, GpuSnapshot, SensorReading, Snapshot, SystemInfo};
 use selfmem::SelfMem;
+use sensors::Sensors;
 
 /// La PSS coûte un parcours des pages mémoire : 2 s suffisent pour un affichage discret.
 const SELF_MEM_EVERY: Duration = Duration::from_secs(2);
+/// NVML coûte quelques millisecondes : le GPU est lu au plus toutes les 2 s.
+const GPU_EVERY: Duration = Duration::from_secs(2);
+/// La batterie évolue lentement et ses pilotes (ACPI) sont lents à interroger.
+const BATTERY_EVERY: Duration = Duration::from_secs(5);
+
+/// Valeur recalculée seulement quand elle a vieilli de plus que `every`.
+struct Tier<T> {
+    every: Duration,
+    last: Option<(Instant, T)>,
+}
+
+impl<T: Clone> Tier<T> {
+    fn new(every: Duration) -> Self {
+        Self { every, last: None }
+    }
+    fn get(&mut self, f: impl FnOnce() -> T) -> T {
+        match &self.last {
+            Some((t, v)) if t.elapsed() < self.every => v.clone(),
+            _ => {
+                let v = f();
+                self.last = Some((Instant::now(), v.clone()));
+                v
+            }
+        }
+    }
+}
+
+type GpuRead = (Vec<GpuSnapshot>, Vec<SensorReading>, Vec<FanReading>);
 
 pub struct Collector {
-    sys: System,
     cpu: CpuCollector,
+    sensors: Sensors,
+    gpus: Gpus,
+    batteries: Batteries,
     self_mem: SelfMem,
-    self_mem_last: Option<(Instant, Option<u64>)>,
+    self_mem_tier: Tier<Option<u64>>,
+    gpu_tier: Tier<GpuRead>,
+    battery_tier: Tier<(Vec<BatterySnapshot>, Option<bool>)>,
 }
 
 impl Collector {
     pub fn new() -> Option<Self> {
-        Some(Self { sys: System::new().ok()?, cpu: CpuCollector::new()?, self_mem: SelfMem::new(), self_mem_last: None })
+        let cpu = CpuCollector::new()?;
+        let gpus = Gpus::discover(&cpu.info.model);
+        Some(Self {
+            cpu,
+            sensors: Sensors::discover(),
+            gpus,
+            batteries: Batteries::discover(),
+            self_mem: SelfMem::new(),
+            self_mem_tier: Tier::new(SELF_MEM_EVERY),
+            gpu_tier: Tier::new(GPU_EVERY),
+            battery_tier: Tier::new(BATTERY_EVERY),
+        })
     }
 
     pub fn system_info(&self) -> SystemInfo {
@@ -37,36 +87,45 @@ impl Collector {
             kernel: System::kernel_version().ok(),
             boot_time_s: System::boot_time().unwrap_or(0),
             cpu: self.cpu.info.clone(),
+            gpus: self.gpus.infos(),
             capabilities: Capabilities {
                 cpu_temp: self.cpu.cap_temp.clone(),
                 cpu_power: self.cpu.cap_power.clone(),
                 cpu_freq: self.cpu.cap_freq.clone(),
+                nvml: self.gpus.cap_nvml.clone(),
+                battery: if self.batteries.present() {
+                    Feature::yes("power_supply")
+                } else {
+                    Feature::no("Aucune batterie détectée : ordinateur de bureau ou batterie non reconnue")
+                },
             },
         }
     }
 
     pub fn sample(&mut self) -> Snapshot {
-        self.sys.refresh_memory_specifics(MemoryRefreshKind::everything());
-        let memory = MemorySnapshot {
-            total: self.sys.total_memory(),
-            used: self.sys.used_memory(),
-            available: self.sys.available_memory(),
-            swap_total: self.sys.total_swap(),
-            swap_used: self.sys.used_swap(),
-        };
-        let self_mem_bytes = match self.self_mem_last {
-            Some((t, v)) if t.elapsed() < SELF_MEM_EVERY => v,
-            _ => {
-                let v = self.self_mem.read();
-                self.self_mem_last = Some((Instant::now(), v));
-                v
-            }
-        };
+        let self_mem = &mut self.self_mem;
+        let self_mem_bytes = self.self_mem_tier.get(|| self_mem.read());
+        let gpus = &mut self.gpus;
+        let (gpus, gpu_sensors, gpu_fans) = self.gpu_tier.get(|| gpus.read());
+        let bats = &mut self.batteries;
+        let (batteries, ac_online) = self.battery_tier.get(|| (bats.read(), bats.ac_online()));
+
+        let mut sensors = self.sensors.read_temps();
+        sensors.extend(gpu_sensors);
+        sensors.sort_by_key(|s| s.kind);
+        let mut fans = self.sensors.read_fans();
+        fans.extend(gpu_fans);
+
         Snapshot {
             t: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
             uptime_s: System::uptime().unwrap_or(0),
             cpu: self.cpu.sample(),
-            memory,
+            memory: memory::read(),
+            sensors,
+            fans,
+            gpus,
+            batteries,
+            ac_online,
             self_mem_bytes,
         }
     }

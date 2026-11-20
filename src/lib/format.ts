@@ -58,6 +58,7 @@ export function temp(c: number, unit: 'c' | 'f' = 'c'): Parts {
 export const tempStr = (c: number, unit: 'c' | 'f' = 'c') => withUnit(...temp(c, unit));
 
 export const ghz = (mhz: number) => num(mhz / 1000, 2);
+export const mhz = (v: number) => withUnit(num(v), 'MHz');
 
 /** Nom court de processeur : « AMD Ryzen 5 5600H with Radeon Graphics » → « Ryzen 5 5600H ». */
 export function shortCpuName(model: string): string {

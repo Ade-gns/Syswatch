@@ -2,7 +2,7 @@
 // (accent / warn / crit) via la classe l-*, jamais sur le texte de la valeur.
 import type { ReactNode } from 'react';
 import { num } from '../lib/format';
-import { level, THRESHOLDS, type Thresholds } from '../lib/levels';
+import { level, THRESHOLDS, type Level, type Thresholds } from '../lib/levels';
 
 const clamp = (p: number) => Math.max(0, Math.min(100, Number.isFinite(p) ? p : 0));
 
@@ -27,10 +27,11 @@ export function Ring({ pct, size = 80, stroke = 8, th = THRESHOLDS.load, label =
   );
 }
 
-export function Bar({ pct, th = THRESHOLDS.load, ticks = true, h = 8 }: { pct: number; th?: Thresholds; ticks?: boolean; h?: number }) {
+/** `lv` impose le niveau quand il ne suit pas la règle « plus haut = pire » (batterie). */
+export function Bar({ pct, th = THRESHOLDS.load, ticks = true, h = 8, lv }: { pct: number; th?: Thresholds; ticks?: boolean; h?: number; lv?: Level }) {
   const p = clamp(pct);
   return (
-    <div className={`sw-bar l-${level(p, th)}`} style={{ height: h }} role="img" aria-label={`${num(p)} pour cent`}>
+    <div className={`sw-bar l-${lv ?? level(p, th)}`} style={{ height: h }} role="img" aria-label={`${num(p)} pour cent`}>
       <i style={{ width: `${p}%` }} />
       {ticks && th[0] <= 100 && <b style={{ left: `${th[0]}%` }} />}
       {ticks && th[1] <= 100 && <b style={{ left: `${th[1]}%` }} />}

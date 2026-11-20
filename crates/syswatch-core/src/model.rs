@@ -11,6 +11,16 @@ pub struct Snapshot {
     pub uptime_s: u64,
     pub cpu: CpuSnapshot,
     pub memory: MemorySnapshot,
+    /// Tous les capteurs de température lisibles (hwmon + GPU NVIDIA via NVML).
+    pub sensors: Vec<SensorReading>,
+    /// Ventilateurs exposés par hwmon ou NVML.
+    pub fans: Vec<FanReading>,
+    /// Une entrée par GPU découvert au démarrage (même ordre que `SystemInfo::gpus`).
+    pub gpus: Vec<GpuSnapshot>,
+    /// Batteries du système (hors périphériques : souris, téléphone…).
+    pub batteries: Vec<BatterySnapshot>,
+    /// Secteur branché ; `None` sur une machine sans adaptateur détecté.
+    pub ac_online: Option<bool>,
     /// Mémoire utilisée par SysWatch lui-même (PSS, processus principal + webviews enfants).
     pub self_mem_bytes: Option<u64>,
 }
@@ -45,14 +55,147 @@ pub struct TempReading {
     pub value_c: f32,
 }
 
+/// Mémoire vive, d'après /proc/meminfo (octets). `used` = total − disponible.
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MemorySnapshot {
     pub total: u64,
     pub used: u64,
     pub available: u64,
+    pub free: u64,
+    /// Cache de pages récupérable (Cached + SReclaimable − Shmem).
+    pub cached: u64,
+    pub buffers: u64,
+    /// Mémoire partagée (tmpfs, mémoire partagée entre processus).
+    pub shared: u64,
+    /// Pages modifiées en attente d'écriture sur disque.
+    pub dirty: u64,
     pub swap_total: u64,
     pub swap_used: u64,
+    /// Pages de swap encore présentes en RAM.
+    pub swap_cached: u64,
+    /// « zram », « partition » ou « fichier » (premier périphérique de /proc/swaps).
+    pub swap_kind: Option<String>,
+}
+
+/// Famille d'un capteur de température : choisit les seuils et l'ordre d'affichage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SensorKind {
+    Cpu,
+    Gpu,
+    Ssd,
+    Ram,
+    Board,
+    Battery,
+    Wifi,
+    Other,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SensorReading {
+    /// Identifiant stable (« k10temp/temp1 »), utilisé pour les seuils réglables.
+    pub id: String,
+    pub label: String,
+    pub kind: SensorKind,
+    pub value_c: f32,
+    /// Seuil critique annoncé par le pilote, s'il est plausible.
+    pub crit_c: Option<f32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FanReading {
+    pub id: String,
+    pub label: String,
+    pub rpm: Option<u32>,
+    /// Consigne en pourcentage (pwm ou NVML), si lisible.
+    pub pct: Option<f32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum GpuState {
+    /// Mesures disponibles.
+    Active,
+    /// GPU en veille (runtime PM) : SysWatch ne le réveille pas.
+    Sleeping,
+    /// Présent mais illisible (pilote, bibliothèque manquante) ; voir `detail`.
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GpuSnapshot {
+    pub id: String,
+    pub state: GpuState,
+    pub detail: Option<String>,
+    /// Charge du moteur graphique, 0–100.
+    pub usage: Option<f32>,
+    pub temp_c: Option<f32>,
+    pub power_w: Option<f32>,
+    pub core_mhz: Option<u32>,
+    pub mem_mhz: Option<u32>,
+    pub vram_used: Option<u64>,
+    pub vram_total: Option<u64>,
+    pub fan_pct: Option<f32>,
+    pub fan_rpm: Option<u32>,
+    /// Processus utilisant le GPU (NVML uniquement).
+    pub processes: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GpuInfo {
+    /// Adresse PCI (« 0000:01:00.0 »).
+    pub id: String,
+    pub name: String,
+    /// « NVIDIA », « AMD », « Intel » ou identifiant brut.
+    pub vendor: String,
+    pub driver: String,
+    pub integrated: bool,
+    pub max_core_mhz: Option<u32>,
+    pub max_mem_mhz: Option<u32>,
+    pub power_limit_w: Option<f32>,
+    /// Vrai si la puissance mesurée est celle du SoC entier (APU), partagée avec le CPU.
+    pub power_shared: bool,
+    pub driver_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum BatteryStatus {
+    Charging,
+    Discharging,
+    Full,
+    NotCharging,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatterySnapshot {
+    /// Nom sysfs (« BAT0 »).
+    pub id: String,
+    pub status: BatteryStatus,
+    pub percent: f32,
+    pub energy_now_wh: Option<f32>,
+    pub energy_full_wh: Option<f32>,
+    pub energy_design_wh: Option<f32>,
+    /// Perte de capacité par rapport à la capacité d'origine, 0–100.
+    pub wear_pct: Option<f32>,
+    pub cycles: Option<u32>,
+    /// Puissance absorbée ou fournie, lissée (W, toujours positive).
+    pub power_w: Option<f32>,
+    pub voltage_v: Option<f32>,
+    /// Temps restant estimé : jusqu'à vide en décharge, jusqu'à plein en charge.
+    pub time_left_s: Option<u64>,
+    /// Seuil de fin de charge configuré dans le firmware, s'il existe.
+    pub charge_limit: Option<u8>,
+    pub technology: Option<String>,
+    pub manufacturer: Option<String>,
+    pub model: Option<String>,
 }
 
 /// Informations stables, lues au démarrage (et rafraîchies à la demande).
@@ -64,6 +207,7 @@ pub struct SystemInfo {
     pub kernel: Option<String>,
     pub boot_time_s: u64,
     pub cpu: CpuInfo,
+    pub gpus: Vec<GpuInfo>,
     pub capabilities: Capabilities,
 }
 
@@ -88,6 +232,9 @@ pub struct Capabilities {
     pub cpu_temp: Feature,
     pub cpu_power: Feature,
     pub cpu_freq: Feature,
+    /// Lecture des GPU NVIDIA (NVML) ; non pertinente sans carte NVIDIA.
+    pub nvml: Feature,
+    pub battery: Feature,
 }
 
 #[derive(Debug, Clone, Serialize)]
