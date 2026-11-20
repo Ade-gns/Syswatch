@@ -20,8 +20,15 @@ variables CSS à partir de `tokens.json`.
 
 ## Lancer
 
-    npm run tauri dev            # développement
-    npm run tauri build          # paquets .deb, .rpm, AppImage
+    npm run tauri dev                                  # développement
+    npm run tauri build -- --bundles deb,rpm           # paquets .deb et .rpm (service inclus)
+    ./scripts/build-appimage.sh                        # AppImage
+
+Les paquets .deb et .rpm installent aussi le service privilégié des ventilateurs
+(systemd, D-Bus, polkit). L'AppImage ne peut pas installer de service système :
+utiliser alors `scripts/install-helper.sh`. `build-appimage.sh` contourne un défaut du
+plugin GTK de linuxdeploy quand un logiciel tiers (VMware…) range des bibliothèques GTK
+sous /usr/lib.
 
 Hors de Tauri (`npm run dev`, navigateur), une source de données simulée reprend les
 valeurs des maquettes pour comparer le rendu ; elle n'est jamais incluse dans le build.

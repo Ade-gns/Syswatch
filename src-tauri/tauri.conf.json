@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build && cargo build --release -p syswatch-helper",
     "frontendDist": "../dist"
   },
   "app": {
@@ -30,9 +30,51 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb", "rpm", "appimage"],
+    "targets": [
+      "deb",
+      "rpm",
+      "appimage"
+    ],
     "category": "Utility",
     "shortDescription": "Surveillance totale du PC",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png"]
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "longDescription": "Surveillance totale du PC sous Linux : CPU, GPU, mémoire, disques et SMART, réseau, processus, batterie, ventilateurs, alertes, widget compact et overlay du mode jeu. Tout reste local.",
+    "linux": {
+      "deb": {
+        "depends": [
+          "libgtk-layer-shell0"
+        ],
+        "files": {
+          "/usr/lib/syswatch/syswatch-helper": "../target/release/syswatch-helper",
+          "/usr/lib/systemd/system/syswatch-helper.service": "../packaging/syswatch-helper.service",
+          "/usr/share/dbus-1/system-services/dev.syswatch.Helper1.service": "../packaging/dev.syswatch.Helper1.service",
+          "/usr/share/dbus-1/system.d/dev.syswatch.Helper1.conf": "../packaging/dev.syswatch.Helper1.conf",
+          "/usr/share/polkit-1/actions/dev.syswatch.policy": "../packaging/dev.syswatch.policy",
+          "/usr/share/doc/syswatch/README-helper.md": "../packaging/README-helper.md"
+        },
+        "postInstallScript": "../packaging/postinst.sh",
+        "preRemoveScript": "../packaging/prerm.sh"
+      },
+      "rpm": {
+        "depends": [
+          "gtk-layer-shell"
+        ],
+        "files": {
+          "/usr/lib/syswatch/syswatch-helper": "../target/release/syswatch-helper",
+          "/usr/lib/systemd/system/syswatch-helper.service": "../packaging/syswatch-helper.service",
+          "/usr/share/dbus-1/system-services/dev.syswatch.Helper1.service": "../packaging/dev.syswatch.Helper1.service",
+          "/usr/share/dbus-1/system.d/dev.syswatch.Helper1.conf": "../packaging/dev.syswatch.Helper1.conf",
+          "/usr/share/polkit-1/actions/dev.syswatch.policy": "../packaging/dev.syswatch.policy",
+          "/usr/share/doc/syswatch/README-helper.md": "../packaging/README-helper.md"
+        },
+        "postInstallScript": "../packaging/postinst.sh",
+        "preRemoveScript": "../packaging/prerm.sh"
+      }
+    }
   }
 }
