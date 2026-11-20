@@ -3341,6 +3341,7 @@ dependencies = [
 name = "syswatch-core"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "log",
  "nvml-wrapper",
  "serde",

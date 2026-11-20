@@ -41,6 +41,32 @@ export function bytes(b: number, opts: { trim?: boolean } = {}): Parts {
 
 export const bytesStr = (b: number) => withUnit(...bytes(b));
 
+const RATE = ['o/s', 'Ko/s', 'Mo/s', 'Go/s'];
+/** Débit en octets/s : « 42,8 Mo/s », « 412 Mo/s », « 0 o/s ». */
+export function rate(bps: number): Parts {
+  let i = 0;
+  let v = Math.max(0, bps);
+  while (v >= 1024 && i < RATE.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return [num(v, i > 0 && v < 100 ? 1 : 0), RATE[i]];
+}
+export const rateStr = (bps: number) => withUnit(...rate(bps));
+
+/** Durée courte en secondes : « 0,91 s », « 9,9 s », « 1 min 3 s ». */
+export function secs(s: number): string {
+  if (s >= 60) return `${Math.floor(s / 60)}${NBSP}min ${Math.round(s % 60)}${NBSP}s`;
+  return withUnit(num(s, s < 1 ? 2 : 1), 's');
+}
+
+/** Heure ou date courte de démarrage d'un processus. */
+export function since(epochS: number): string {
+  const d = new Date(epochS * 1000);
+  const today = new Date().toDateString() === d.toDateString();
+  return today ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
 /** Durée « 3 h 42 », « 12 min », « 2 j 4 h ». */
 export function duration(s: number): string {
   const d = Math.floor(s / 86400);

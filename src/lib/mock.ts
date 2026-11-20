@@ -1,7 +1,7 @@
 // Source simulée, UNIQUEMENT pour l'aperçu navigateur en développement (npm run dev hors Tauri).
 // Reprend les valeurs des maquettes pour comparer le rendu. Jamais chargée dans l'application.
 import type { Backend } from './api';
-import type { Settings, Snapshot, SystemInfo } from './types';
+import type { AutostartEntry, ProcessList, Settings, Snapshot, StartupInfo, SystemInfo } from './types';
 
 let settings: Settings = { theme: 'dark', accent: 'cyan', intervalMs: 1000, historyS: 60, sidebarCollapsed: false, tempUnit: 'c' };
 const params = new URLSearchParams(location.search);
@@ -31,7 +31,7 @@ const walk = (base: number, amp: number) => {
   return () => (v = Math.max(0, Math.min(100, v + (Math.random() - 0.5) * amp + (base - v) * 0.12)));
 };
 const cores = [34, 28, 41, 22, 78, 36, 19, 31, 45, 25, 93, 30, 27, 38, 21, 33].map(b => walk(b, 6));
-const cpu = walk(34, 12), ram = walk(82, 1), gpu = walk(12, 8), bat = walk(64, 0.2);
+const cpu = walk(34, 12), ram = walk(82, 1), gpu = walk(12, 8), bat = walk(64, 0.2), dl = walk(40, 14);
 
 function snap(t: number): Snapshot {
   const total = 16 * 1024 ** 3;
@@ -76,9 +76,55 @@ function snap(t: number): Snapshot {
       powerW: 14.2 + Math.random(), voltageV: 15.4, timeLeftS: 11700, chargeLimit: 80, technology: 'Li-ion', manufacturer: 'HP', model: 'Primary',
     }],
     acOnline: false,
+    network: {
+      rxBps: Math.max(0, dl()) * 1024 * 1024, txBps: (3 + Math.random()) * 1024 * 1024, connected: true, defaultIface: 'wlan0', gateway: '192.168.1.1',
+      dns: ['192.168.1.1'], pingMs: 14 + Math.random() * 3, pingTarget: '192.168.1.1',
+      wifi: { iface: 'wlan0', ssid: 'Maison', signalDbm: -52, freqMhz: 5180, rxMbps: 866.7, txMbps: 780 },
+      interfaces: [
+        { name: 'wlan0', kind: 'wifi', up: true, rxBps: 42.8 * 1024 ** 2, txBps: 3.1 * 1024 ** 2, rxTotal: 18.2 * 1024 ** 3, txTotal: 1.4 * 1024 ** 3, mac: 'b4:8c:9d:00:00:01', ipv4: ['192.168.1.20/24'], ipv6: [], speedMbps: null },
+        { name: 'eno1', kind: 'ethernet', up: false, rxBps: 0, txBps: 0, rxTotal: 0, txTotal: 0, mac: 'b4:8c:9d:00:00:02', ipv4: [], ipv6: [], speedMbps: null },
+        { name: 'docker0', kind: 'virtual', up: true, rxBps: 0, txBps: 0, rxTotal: 0, txTotal: 0, mac: null, ipv4: ['172.17.0.1/16'], ipv6: [], speedMbps: null },
+      ],
+    },
     selfMemBytes: 47 * 1024 ** 2,
   };
 }
+
+// Processus de la maquette ProcessTable (SW.PROCS), en octets et octets/s.
+const MB = 1024 * 1024;
+const PROCS: [string, number, string | null, number, number, number, number][] = [
+  ['firefox', 4128, 'firefox', 12.4, 2310, 0.3, 4.2], ['steam', 3011, 'steam', 6.1, 612, 1.2, 18.4], ['code', 5530, 'code', 4.8, 940, 0.1, 0],
+  ['kwin_wayland', 1204, null, 3.2, 310, 0, 0], ['plasmashell', 1260, null, 2.1, 420, 0, 0], ['discord', 6102, 'discord', 1.9, 530, 0, 0.2],
+  ['pipewire', 982, null, 0.9, 28, 0, 0], ['spotify', 6455, 'spotify', 0.8, 380, 0, 0.4], ['Xwayland', 1301, null, 0.6, 96, 0, 0], ['baloo_file', 1822, null, 0.4, 52, 3.1, 0],
+];
+const NAMES: Record<string, string> = { firefox: 'Firefox', steam: 'Steam', code: 'Visual Studio Code', discord: 'Discord', spotify: 'Spotify' };
+const alive = new Set(PROCS.map(p => p[1]));
+function processList(withConn: boolean): ProcessList {
+  const procs = PROCS.filter(p => alive.has(p[1])).map(([name, pid, app, cpu, mem, disk, net]) => ({
+    pid, ppid: 1, name, user: 'adelphe', cmd: `/usr/bin/${name}`, threads: 24, startS: Math.floor(Date.now() / 1000) - 3600, cpu: cpu * (0.8 + Math.random() * 0.4),
+    mem: mem * MB, diskRead: disk * MB, diskWrite: 0, netRx: net * MB, netTx: net * MB * 0.1, app,
+  }));
+  const apps = procs.filter(p => p.app).map(p => ({ id: p.app!, name: NAMES[p.app!], pid: p.pid, pids: [p.pid], cpu: p.cpu, mem: p.mem, diskRead: p.diskRead, diskWrite: 0, netRx: p.netRx, netTx: p.netTx }));
+  const connections = withConn ? [
+    { proto: 'TCP' as const, state: 'Établie', local: '192.168.1.20', localPort: 50112, remote: '151.101.1.140', remotePort: 443, pid: 4128, listening: false },
+    { proto: 'TCP' as const, state: 'Établie', local: '192.168.1.20', localPort: 50113, remote: '34.107.221.82', remotePort: 443, pid: 4128, listening: false },
+    { proto: 'TCP' as const, state: 'Établie', local: '192.168.1.20', localPort: 41022, remote: '162.254.193.6', remotePort: 27017, pid: 3011, listening: false },
+    { proto: 'TCP' as const, state: 'Écoute', local: '0.0.0.0', localPort: 1716, remote: '0.0.0.0', remotePort: 0, pid: null, listening: true },
+  ] : [];
+  return { processes: procs, apps, connections };
+}
+let autostart: AutostartEntry[] = [
+  { id: 'discord.desktop', name: 'Discord', comment: 'Messagerie', command: 'discord --start-minimized', enabled: true, source: 'user', component: false },
+  { id: 'steam.desktop', name: 'Steam', comment: 'Plateforme de jeux', command: 'steam -silent', enabled: false, source: 'user', component: false },
+  { id: 'org.kde.kdeconnect.daemon.desktop', name: 'KDE Connect', comment: null, command: 'kdeconnectd', enabled: true, source: 'system', component: false },
+  { id: 'org.kde.plasmashell.desktop', name: 'Plasma', comment: 'Bureau', command: null, enabled: true, source: 'system', component: true },
+];
+const startup = (): StartupInfo => ({
+  boot: { firmwareS: 4.87, loaderS: 5.28, kernelS: 0.91, initrdS: 5.76, userspaceS: 9.88, totalS: 26.7 },
+  bootDetail: null,
+  slowest: [['NetworkManager-wait-online', 6.2], ['ldconfig', 2.4], ['NetworkManager', 1.6], ['docker', 1.1], ['upower', 0.4]].map(([unit, seconds]) => ({ unit: unit as string, seconds: seconds as number })),
+  autostart,
+});
 
 export const mockBackend: Backend = {
   getSystemInfo: async () => info,
@@ -90,5 +136,14 @@ export const mockBackend: Backend = {
     for (let i = 59; i > 0; i--) cb(snap(now - i * 1000)); // historique initial plein
     const id = setInterval(() => cb(snap(Date.now())), settings.intervalMs);
     return () => clearInterval(id);
+  },
+  listProcesses: async c => processList(c),
+  terminate: async pids => {
+    if (pids.includes(1204)) throw new Error('Processus 1204 non fermé : appartient à un autre utilisateur');
+    pids.forEach(p => alive.delete(p));
+  },
+  getStartup: async () => startup(),
+  setAutostart: async (id, enabled) => {
+    autostart = autostart.map(a => (a.id === id ? { ...a, enabled } : a));
   },
 };

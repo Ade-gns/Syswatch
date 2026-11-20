@@ -21,6 +21,7 @@ pub struct Snapshot {
     pub batteries: Vec<BatterySnapshot>,
     /// Secteur branché ; `None` sur une machine sans adaptateur détecté.
     pub ac_online: Option<bool>,
+    pub network: NetworkSnapshot,
     /// Mémoire utilisée par SysWatch lui-même (PSS, processus principal + webviews enfants).
     pub self_mem_bytes: Option<u64>,
 }
@@ -252,4 +253,64 @@ impl Feature {
     pub fn no(reason: impl Into<String>) -> Self {
         Self { supported: false, detail: reason.into() }
     }
+}
+
+/// Ordre de tri des interfaces : physiques d'abord.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum IfaceKind {
+    Wifi,
+    Ethernet,
+    Other,
+    Virtual,
+    Loopback,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IfaceSnapshot {
+    pub name: String,
+    pub kind: IfaceKind,
+    pub up: bool,
+    /// Octets/s.
+    pub rx_bps: f64,
+    pub tx_bps: f64,
+    /// Octets depuis le démarrage.
+    pub rx_total: u64,
+    pub tx_total: u64,
+    pub mac: Option<String>,
+    /// Adresses avec préfixe (« 192.168.1.20/24 »).
+    pub ipv4: Vec<String>,
+    pub ipv6: Vec<String>,
+    /// Vitesse du lien filaire négociée (Mb/s).
+    pub speed_mbps: Option<u32>,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WifiInfo {
+    pub iface: String,
+    pub ssid: Option<String>,
+    pub signal_dbm: Option<i32>,
+    pub freq_mhz: Option<u32>,
+    pub rx_mbps: Option<f32>,
+    pub tx_mbps: Option<f32>,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkSnapshot {
+    /// Débit total des interfaces physiques (hors boucle locale et interfaces virtuelles).
+    pub rx_bps: f64,
+    pub tx_bps: f64,
+    /// Une route par défaut existe.
+    pub connected: bool,
+    pub default_iface: Option<String>,
+    pub gateway: Option<String>,
+    pub dns: Vec<String>,
+    /// Latence vers la passerelle locale (ms) ; `None` si sans réponse.
+    pub ping_ms: Option<f32>,
+    pub ping_target: Option<String>,
+    pub wifi: Option<WifiInfo>,
+    pub interfaces: Vec<IfaceSnapshot>,
 }

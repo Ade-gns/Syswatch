@@ -93,7 +93,100 @@ export interface Snapshot {
   gpus: GpuSnapshot[];
   batteries: BatterySnapshot[];
   acOnline: boolean | null;
+  network: NetworkSnapshot;
   selfMemBytes: number | null;
+}
+
+export type IfaceKind = 'wifi' | 'ethernet' | 'other' | 'virtual' | 'loopback';
+export interface IfaceSnapshot {
+  name: string;
+  kind: IfaceKind;
+  up: boolean;
+  rxBps: number;
+  txBps: number;
+  rxTotal: number;
+  txTotal: number;
+  mac: string | null;
+  ipv4: string[];
+  ipv6: string[];
+  speedMbps: number | null;
+}
+export interface WifiInfo { iface: string; ssid: string | null; signalDbm: number | null; freqMhz: number | null; rxMbps: number | null; txMbps: number | null }
+export interface NetworkSnapshot {
+  rxBps: number;
+  txBps: number;
+  connected: boolean;
+  defaultIface: string | null;
+  gateway: string | null;
+  dns: string[];
+  pingMs: number | null;
+  pingTarget: string | null;
+  wifi: WifiInfo | null;
+  interfaces: IfaceSnapshot[];
+}
+
+export interface ProcInfo {
+  pid: number;
+  ppid: number;
+  name: string;
+  user: string;
+  cmd: string;
+  threads: number;
+  startS: number;
+  cpu: number;
+  mem: number;
+  diskRead: number | null;
+  diskWrite: number | null;
+  netRx: number | null;
+  netTx: number | null;
+  app: string | null;
+}
+export interface AppInfo {
+  id: string;
+  name: string;
+  pid: number;
+  pids: number[];
+  cpu: number;
+  mem: number;
+  diskRead: number;
+  diskWrite: number;
+  netRx: number;
+  netTx: number;
+}
+export interface Connection {
+  proto: 'TCP' | 'UDP';
+  state: string;
+  local: string;
+  localPort: number;
+  remote: string;
+  remotePort: number;
+  pid: number | null;
+  listening: boolean;
+}
+export interface ProcessList { processes: ProcInfo[]; apps: AppInfo[]; connections: Connection[] }
+
+export interface BootTimes {
+  firmwareS: number | null;
+  loaderS: number | null;
+  kernelS: number | null;
+  initrdS: number | null;
+  userspaceS: number | null;
+  totalS: number | null;
+}
+export interface AutostartEntry {
+  id: string;
+  name: string;
+  comment: string | null;
+  command: string | null;
+  enabled: boolean;
+  source: 'user' | 'system';
+  component: boolean;
+}
+export interface StartupInfo {
+  boot: BootTimes | null;
+  bootDetail: string | null;
+  slowest: { unit: string; seconds: number }[];
+  autostart: AutostartEntry[];
 }
 
 export interface Feature { supported: boolean; detail: string }

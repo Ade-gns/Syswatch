@@ -1,16 +1,20 @@
 // Page Accueil — maquette « HomeScreen ». Chaque widget est à sa place dans la maquette ;
 // les emplacements encore vides (disque, réseau, processus, alertes) se remplissent avec
 // leurs collecteurs, et la grille devient personnalisable à l'étape 7.
-import { Card, Empty, Legend, LevelBadge, MeterRow, Widget } from '../components/Card';
+import { Badge, Card, Empty, Legend, LevelBadge, MeterRow, Sec, Widget } from '../components/Card';
+import { Spark } from '../components/Gauges';
+import { Icon } from '../components/Icon';
 import { LiveChart } from '../components/LiveChart';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/Shell';
-import { bytes, duration, ghz, NBSP, seconds, temp, tempStr } from '../lib/format';
+import { be } from '../lib/api';
+import { bytes, duration, ghz, NBSP, num, rate, seconds, temp, tempStr, withUnit } from '../lib/format';
 import { gpuStateWord, mainGpu } from '../lib/gpu';
-import { level, sensorThresholds, worst } from '../lib/levels';
+import { level, NO_THRESHOLD, sensorThresholds, worst } from '../lib/levels';
+import { usePoll } from '../lib/poll';
 import { useSettings } from '../lib/settings';
 import { gpuKey, tail, useLive } from '../lib/store';
-import type { SensorKind, SensorReading } from '../lib/types';
+import type { NetworkSnapshot, ProcessList, SensorKind, SensorReading } from '../lib/types';
 
 const SPARK = 40;
 /** Une ligne par famille, dans l'ordre de la maquette : CPU, GPU, SSD, carte mère, batterie. */
@@ -26,7 +30,36 @@ function homeSensors(all: SensorReading[]) {
   return rows.slice(0, 5);
 }
 
+/** Les 5 plus gros consommateurs de CPU : applications regroupées, autres processus seuls. */
+function topCpu(l: ProcessList) {
+  const loose = l.processes.filter(p => !p.app).map(p => ({ key: `p${p.pid}`, name: p.name, cpu: p.cpu }));
+  return [...l.apps.map(a => ({ key: `a${a.id}`, name: a.name, cpu: a.cpu })), ...loose].sort((a, b) => b.cpu - a.cpu).slice(0, 5);
+}
+
+const band = (mhz: number) => (mhz >= 5925 ? '6 GHz' : mhz >= 4900 ? '5 GHz' : '2,4 GHz');
+
+function NetCard({ n, rx }: { n: NetworkSnapshot; rx: number[] }) {
+  const [r, ru] = rate(n.rxBps);
+  const [t, tu] = rate(n.txBps);
+  const big = { fontSize: 24, lineHeight: '30px' };
+  const w = n.wifi;
+  return (
+    <Card title="Réseau" right={<Badge s={n.connected ? 'ok' : 'crit'}>{n.connected ? 'Connecté' : 'Déconnecté'}</Badge>}>
+      <div className="sw-net">
+        <div><span className="sw-sec"><Icon name="down" size={13} /> Réception</span><div className="sw-val md" style={big}>{r}<small>{ru}</small></div></div>
+        <div><span className="sw-sec"><Icon name="up" size={13} /> Émission</span><div className="sw-val md" style={big}>{t}<small>{tu}</small></div></div>
+      </div>
+      <div className="l-ok"><Spark values={rx} min={0} h={44} /></div>
+      <div className="sw-foot sw-sec">
+        <span>{n.pingMs != null ? `Ping ${withUnit(num(n.pingMs), 'ms')}` : 'Ping —'}</span>
+        {w && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}><Icon name="wifi" size={12} /> Wi‑Fi {w.freqMhz ? band(w.freqMhz) : ''}{w.signalDbm != null ? ` · −${Math.abs(w.signalDbm)}${NBSP}dBm` : ''}</span>}
+      </div>
+    </Card>
+  );
+}
+
 export function HomePage() {
+  const procs = usePoll(() => be().listProcesses(false), 2000).data;
   const { snap, info, times, series, get, historyMs } = useLive();
   const { intervalMs, tempUnit } = useSettings();
   if (!snap || !info) return <Empty>Lecture des capteurs…</Empty>;
@@ -68,9 +101,17 @@ export function HomePage() {
             ]} />
           </Card>
         </Widget>
-        <div className="c4" />
+        <Widget span={4}><NetCard n={snap.network} rx={tail(get('netRx'), SPARK)} /></Widget>
 
-        <div className="c4" />
+        <Widget span={4}>
+          <Card title="Top processus" right={<Sec>CPU</Sec>}>
+            {procs ? (
+              <div className="sw-rows">
+                {topCpu(procs).map(p => <MeterRow key={p.key} label={p.name} pct={p.cpu * 5} th={NO_THRESHOLD} value={withUnit(num(p.cpu, 1), '%')} />)}
+              </div>
+            ) : <Empty>Lecture des processus…</Empty>}
+          </Card>
+        </Widget>
         <Widget span={4}>
           <Card title="Températures" right={temps.length > 0 && <LevelBadge l={tempsLevel} />}>
             {temps.length ? (

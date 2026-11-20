@@ -73,6 +73,9 @@ function extract(s: Snapshot): Record<string, number> {
     v[gpuKey(g.id, 'power')] = orNaN(g.powerW);
     v[gpuKey(g.id, 'vram')] = g.vramUsed != null && g.vramTotal ? pct(g.vramUsed, g.vramTotal) : NaN;
   }
+  v.netRx = s.network.rxBps;
+  v.netTx = s.network.txBps;
+  v.ping = orNaN(s.network.pingMs);
   const b = s.batteries[0];
   if (b) {
     v.batLevel = b.percent;

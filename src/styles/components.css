@@ -318,3 +318,20 @@ html, body { margin: 0; background: var(--bg); overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .sw-ring .rf, .sw-bar i, .sw-switch::after { transition: none; }
 }
+
+/* ---- Tableau de processus dans une carte : la liste défile, l'en-tête reste visible. ---- */
+.sw-ptable { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.sw-pscroll { flex: 1; min-height: 0; overflow-y: auto; }
+.sw-pscroll thead th { position: sticky; top: 0; background: var(--surface-2); z-index: 1; }
+.sw-table tbody tr { cursor: default; }
+.sw-table tbody tr.is-open td { background: var(--surface-3); }
+.sw-perr { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text); font: var(--text-body-sm); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw-perr .sw-ic { flex: none; }
+.sw-perr .sw-ic { color: var(--crit); }
+.sw-pdet td { background: var(--surface-3); height: auto; padding: var(--space-2) var(--space-3) var(--space-3); }
+.sw-pdet-in { display: flex; flex-direction: column; gap: var(--space-2); }
+.sw-pdet-in .kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1) var(--space-6); }
+.sw-pdet-in .kv div { display: flex; justify-content: space-between; gap: var(--space-3); font: var(--text-body-sm); }
+.sw-pdet-in .kv span:first-child { color: var(--text-muted); }
+.sw-pdet-in .kv span:last-child { font: var(--text-data); font-variant-numeric: tabular-nums; text-align: right; }
+.sw-pdet-in code { font: var(--text-data); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
