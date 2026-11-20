@@ -268,7 +268,11 @@ export interface Settings {
   widget: WidgetSettings;
   overlay: OverlaySettings;
   closeToTray: boolean;
+  checkUpdates: boolean;
 }
+
+/** Résultat d'une vérification de mise à jour (Releases GitHub). */
+export interface UpdateInfo { current: string; version: string | null; notes: string | null; date: string | null; canInstall: boolean }
 
 export type Corner = 'hg' | 'hd' | 'bg' | 'bd';
 export interface WidgetSettings { enabled: boolean; style: 'bar' | 'card' | 'pill'; corner: Corner; opacity: number; onTop: boolean }

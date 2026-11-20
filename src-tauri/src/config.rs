@@ -30,6 +30,8 @@ pub struct Settings {
     pub overlay: OverlaySettings,
     /// Le bouton Fermer réduit dans la zone de notification au lieu de quitter.
     pub close_to_tray: bool,
+    /// Vérifier les mises à jour sur GitHub au lancement (désactivé : aucune requête réseau).
+    pub check_updates: bool,
 }
 
 /// Widget compact toujours visible (maquette CompactOverlay, réglages de SettingsScreen).
@@ -97,6 +99,7 @@ impl Default for Settings {
             widget: WidgetSettings::default(),
             overlay: OverlaySettings::default(),
             close_to_tray: true,
+            check_updates: false,
         }
     }
 }

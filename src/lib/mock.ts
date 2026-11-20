@@ -12,6 +12,7 @@ let settings: Settings = { theme: 'dark', accent: 'cyan', intervalMs: 1000, hist
   widget: { enabled: false, style: 'bar', corner: 'hd', opacity: 85, onTop: true },
   overlay: { enabled: true, style: 'standard', corner: 'hg', items: ['fps', 'cpu', 'gpu', 'ram', 'vram', 'temp'], fpsTarget: 60, autoShow: true },
   closeToTray: true,
+  checkUpdates: false,
 };
 const params = new URLSearchParams(location.search);
 if (params.get('theme') === 'light') settings.theme = 'light';
@@ -211,6 +212,10 @@ export const mockBackend: Backend = {
   getLayout: async () => savedLayout,
   getLaunchAtLogin: async () => launchAtLogin,
   setLaunchAtLogin: async v => { launchAtLogin = v; },
+  checkUpdate: async () => ({ current: '0.1.0', version: '0.2.0', notes: 'Aperçu : version simulée.', date: null, canInstall: true }),
+  installUpdate: async () => { throw new Error('Aperçu navigateur : installation simulée.'); },
+  onUpdateAvailable: async () => () => {},
+  onUpdateProgress: async () => () => {},
   saveLayout: async l => { savedLayout = l; },
   setFanMode: async (_id, mode) => { fanMode = mode; },
   setPowerProfile: async () => {},

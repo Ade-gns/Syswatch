@@ -19,6 +19,8 @@ serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
 zbus = { version = "5", default-features = false, features = ["blocking-api", "async-io"] }
+tauri-plugin-updater = "2"
+time = { version = "0.3", features = ["formatting"] }
 
 # Placement du widget et de l'overlay sous Wayland (protocole layer-shell, pris en charge par KWin).
 [target.'cfg(target_os = "linux")'.dependencies]

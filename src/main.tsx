@@ -7,6 +7,7 @@ import { initAlerts } from './lib/alerts';
 import { backend, inTauri } from './lib/api';
 import { initSettings } from './lib/settings';
 import { pushSnapshot, setSystemInfo } from './lib/store';
+import { initUpdates } from './lib/update';
 import './index.css';
 
 async function boot() {
@@ -24,6 +25,7 @@ async function boot() {
     return;
   }
   await initAlerts(be);
+  initUpdates(be);
 
   // Échantillonnage adaptatif : le backend ralentit quand la fenêtre n'est plus visible.
   document.addEventListener('visibilitychange', () => be.setVisible(document.visibilityState === 'visible'));

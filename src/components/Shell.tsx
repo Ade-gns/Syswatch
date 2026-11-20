@@ -32,8 +32,10 @@ export function Titlebar() {
   );
 }
 
-export function Sidebar({ active, onNavigate, onToggle, alerts, selfMem }: {
+export function Sidebar({ active, onNavigate, onToggle, alerts, selfMem, update }: {
   active: PageId; onNavigate: (p: PageId) => void; onToggle: () => void; alerts: number; selfMem: number | null;
+  /** Version disponible, signalée par une pastille sur Paramètres. */
+  update: string | null;
 }) {
   const mem = selfMem != null ? bytes(selfMem).join(NBSP) : '—';
   return (
@@ -46,6 +48,7 @@ export function Sidebar({ active, onNavigate, onToggle, alerts, selfMem }: {
             <Icon name={p[2]} size={18} />
             <span className="l">{p[1]}</span>
             {p[0] === 'alert' && alerts > 0 && <span className="n" aria-label={`${alerts} alertes non lues`}>{alerts}</span>}
+            {p[0] === 'cog' && update && <span className="n acc" title={`SysWatch ${update} disponible`} aria-label={`Mise à jour ${update} disponible`}>↑</span>}
           </button>
         ),
       )}

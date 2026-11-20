@@ -7,10 +7,13 @@ import { Bar, Ring } from '../components/Gauges';
 import { accentValue, contrast, resolveTheme } from '../lib/accent';
 import { ACCENT_PRESETS } from '../lib/tokens.gen';
 import { Segmented, SettingRow, Switch } from '../components/Controls';
+import { Icon } from '../components/Icon';
 import { PageHeader } from '../components/Shell';
 import { be, errText } from '../lib/api';
 import { usePoll } from '../lib/poll';
 import { updateSettings, useSettings } from '../lib/settings';
+import { checkForUpdate, installUpdate, useUpdate } from '../lib/update';
+import { bytes, NBSP } from '../lib/format';
 import type { Corner, OverlayItem, OverlaySettings, WidgetSettings } from '../lib/types';
 
 const CORNERS: [Corner, string][] = [['hg', 'Haut gauche'], ['hd', 'Haut droite'], ['bg', 'Bas gauche'], ['bd', 'Bas droite']];
@@ -93,6 +96,38 @@ function LaunchRow() {
         refresh();
       }} />
     </SettingRow>
+  );
+}
+
+/** Mises à jour depuis les Releases GitHub : rien ne part sur le réseau sans action ou option. */
+function UpdateCard() {
+  const s = useSettings();
+  const u = useUpdate();
+  const v = u.info?.version;
+  const pct = u.progress?.total ? Math.round((u.progress.done / u.progress.total) * 100) : null;
+  const status = u.installing
+    ? (pct != null ? `Téléchargement… ${pct} %` : u.progress ? `Téléchargement… ${bytes(u.progress.done).join(NBSP)}` : 'Préparation…')
+    : u.error ?? (!u.info ? 'Jamais vérifié pendant cette session'
+      : v ? (u.info.canInstall ? `Version ${v} disponible` : `Version ${v} disponible : à installer avec le gestionnaire de paquets`)
+      : `SysWatch ${u.info.current} est à jour`);
+  return (
+    <Card title="Mises à jour" right={v ? <Badge s="acc">{v}</Badge> : undefined}>
+      <SettingRow title="Vérifier au démarrage" desc="Contacte GitHub à chaque lancement ; désactivé, SysWatch n’envoie rien sur Internet">
+        <Switch on={s.checkUpdates} label="Vérifier les mises à jour au démarrage" onChange={c => updateSettings({ checkUpdates: c })} />
+      </SettingRow>
+      <SettingRow title={u.info ? `Version installée : ${u.info.current}` : 'Version installée'} desc={status}>
+        {v && u.info?.canInstall ? (
+          <button type="button" className="sw-btn pri" disabled={u.installing} onClick={installUpdate}>
+            <Icon name="down" size={15} />Installer et redémarrer
+          </button>
+        ) : (
+          <button type="button" className="sw-btn" disabled={u.checking || u.installing} onClick={checkForUpdate}>
+            {u.checking ? 'Vérification…' : 'Vérifier maintenant'}
+          </button>
+        )}
+      </SettingRow>
+      {v && u.info?.notes && <div className="sw-note"><Icon name="info" size={14} /><span style={{ whiteSpace: 'pre-line' }}>{u.info.notes}</span></div>}
+    </Card>
   );
 }
 
@@ -199,6 +234,7 @@ export function SettingsPage() {
               </SettingRow>
             </Card>
           </Widget>
+          <Widget span={12}><UpdateCard /></Widget>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', minWidth: 0 }}>
           <Widget span={12}><WidgetCard /></Widget>

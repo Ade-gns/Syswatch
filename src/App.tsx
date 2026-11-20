@@ -4,6 +4,7 @@ import { updateSettings, useSettings } from './lib/settings';
 import { useAlerts } from './lib/alerts';
 import { useEditing } from './lib/editMode';
 import { useLive } from './lib/store';
+import { useUpdate } from './lib/update';
 import { AlertsPage } from './pages/AlertsPage';
 import { BatteryPage } from './pages/BatteryPage';
 import { CpuPage } from './pages/CpuPage';
@@ -21,8 +22,9 @@ import { SettingsPage } from './pages/SettingsPage';
 function SelfMemFooter({ page, onNavigate, collapsed }: { page: PageId; onNavigate: (p: PageId) => void; collapsed: boolean }) {
   const { snap } = useLive();
   const { unread } = useAlerts();
+  const { info } = useUpdate();
   return (
-    <Sidebar active={page} onNavigate={onNavigate} alerts={unread} selfMem={snap?.selfMemBytes ?? null}
+    <Sidebar active={page} onNavigate={onNavigate} alerts={unread} selfMem={snap?.selfMemBytes ?? null} update={info?.version ?? null}
       onToggle={() => updateSettings({ sidebarCollapsed: !collapsed })} />
   );
 }

@@ -30,5 +30,16 @@ WRAP
 chmod +x "$STAGE/bin/pkgconf"
 ln -s pkgconf "$STAGE/bin/pkg-config"
 
+# Signature de mise à jour (.sig) avec la clé locale si elle existe ; sinon build non signé,
+# utilisable tel quel mais sans fichiers de mise à jour.
+KEY="$HOME/.tauri/syswatch.key"
+EXTRA=()
+if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" && -f "$KEY" ]]; then
+  export TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEY")"
+  export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="$(cat "$KEY.password" 2>/dev/null || true)"
+elif [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+  EXTRA=(--config '{"bundle":{"createUpdaterArtifacts":false}}')
+fi
+
 # NO_STRIP : le strip embarqué par linuxdeploy ne connaît pas les binaires récents.
-PATH="$STAGE/bin:$PATH" NO_STRIP=true npm run tauri build -- --bundles appimage "$@"
+PATH="$STAGE/bin:$PATH" NO_STRIP=true npm run tauri build -- --bundles appimage "${EXTRA[@]}" "$@"

@@ -3,7 +3,7 @@
 // jamais incluse dans l'application compilée.
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { AlertEvent, AlertsView, FanMode, MangohudStatus, FanStatus, FolderScan, ProcessList, Settings, SmartInfo, Snapshot, StartupInfo, SystemInfo } from './types';
+import type { AlertEvent, AlertsView, FanMode, MangohudStatus, FanStatus, FolderScan, ProcessList, Settings, SmartInfo, Snapshot, StartupInfo, SystemInfo, UpdateInfo } from './types';
 
 export const inTauri = isTauri();
 
@@ -48,6 +48,13 @@ export interface Backend {
   saveLayout(layout: unknown): Promise<void>;
   getLaunchAtLogin(): Promise<boolean>;
   setLaunchAtLogin(enabled: boolean): Promise<void>;
+  /** Interroge les Releases GitHub (seule requête Internet de SysWatch, à la demande). */
+  checkUpdate(): Promise<UpdateInfo>;
+  /** Télécharge, vérifie la signature, remplace l'AppImage et redémarre. */
+  installUpdate(): Promise<void>;
+  /** Version trouvée par la vérification au démarrage. */
+  onUpdateAvailable(cb: (u: UpdateInfo) => void): Promise<() => void>;
+  onUpdateProgress(cb: (p: { done: number; total: number | null }) => void): Promise<() => void>;
 }
 
 const tauriBackend: Backend = {
@@ -81,6 +88,10 @@ const tauriBackend: Backend = {
   saveLayout: layout => invoke('save_layout', { layout }),
   getLaunchAtLogin: () => invoke('get_launch_at_login'),
   setLaunchAtLogin: enabled => invoke('set_launch_at_login', { enabled }),
+  checkUpdate: () => invoke('check_update'),
+  installUpdate: () => invoke('install_update'),
+  onUpdateAvailable: cb => listen<UpdateInfo>('update-available', e => cb(e.payload)),
+  onUpdateProgress: cb => listen<{ done: number; total: number | null }>('update-progress', e => cb(e.payload)),
 };
 
 /** Message d'erreur lisible : Tauri rejette avec une chaîne, le reste avec une Error. */

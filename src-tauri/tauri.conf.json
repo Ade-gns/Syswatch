@@ -75,6 +75,15 @@
         "postInstallScript": "../packaging/postinst.sh",
         "preRemoveScript": "../packaging/prerm.sh"
       }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBRDcwNzRFNkREQjJCOTYKUldTV0s5dHRUZ2ZYbWdyb1FuN3EwMXBkamN3d1ZVa1FMTXIyNGR0QklVU1MxN1I3UXRGTXpFZ2oK",
+      "endpoints": [
+        "https://github.com/Ade-gns/Syswatch/releases/latest/download/latest.json"
+      ]
     }
   }
 }

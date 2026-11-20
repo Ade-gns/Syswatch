@@ -5,6 +5,7 @@ mod logger;
 mod sampler;
 mod shortcut;
 mod tray;
+mod update;
 mod windows;
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -98,6 +99,16 @@ async fn get_startup() -> Result<StartupInfo, String> {
 #[tauri::command]
 async fn set_autostart(id: String, enabled: bool) -> Result<(), String> {
     blocking(move || startup::set_autostart(&id, enabled)).await?
+}
+
+#[tauri::command]
+async fn check_update(app: AppHandle) -> Result<update::UpdateInfo, String> {
+    update::check(&app).await
+}
+
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<(), String> {
+    update::install(&app).await
 }
 
 #[tauri::command]
@@ -326,6 +337,8 @@ fn sample_hook(settings: Arc<Mutex<Settings>>, alerts: Arc<Mutex<AlertEngine>>) 
 pub fn run() {
     logger::init();
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(update::Pending::default())
         .setup(|app| {
             let settings = config::load();
             let collector = Collector::new().ok_or("Impossible d'initialiser la collecte système")?;
@@ -360,6 +373,9 @@ pub fn run() {
                     let _ = w.show();
                 }
             }
+            if state.settings.lock().unwrap().check_updates {
+                update::check_at_startup(handle.clone());
+            }
             shortcut::spawn(handle);
             Ok(())
         })
@@ -381,7 +397,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_system_info, get_settings, save_settings, set_visible, list_processes, terminate, get_startup, set_autostart, disk_smart, scan_folders, fan_status,
-            set_fan_mode, set_power_profile, get_alerts, mark_alerts_read, clear_alerts, set_overlay_shown, get_overlay_shown, reposition, mangohud_status, setup_mangohud, get_layout, save_layout, get_launch_at_login, set_launch_at_login
+            set_fan_mode, set_power_profile, get_alerts, mark_alerts_read, clear_alerts, set_overlay_shown, get_overlay_shown, reposition, mangohud_status, setup_mangohud, get_layout, save_layout, get_launch_at_login, set_launch_at_login, check_update, install_update
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de SysWatch");

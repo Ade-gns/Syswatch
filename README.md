@@ -21,7 +21,7 @@ variables CSS à partir de `tokens.json`.
 ## Lancer
 
     npm run tauri dev                                  # développement
-    npm run tauri build -- --bundles deb,rpm           # paquets .deb et .rpm (service inclus)
+    npm run tauri build -- --bundles deb,rpm -c '{"bundle":{"createUpdaterArtifacts":false}}'   # .deb et .rpm (service inclus)
     ./scripts/build-appimage.sh                        # AppImage
 
 Les paquets .deb et .rpm installent aussi le service privilégié des ventilateurs
@@ -33,6 +33,25 @@ sous /usr/lib.
 Hors de Tauri (`npm run dev`, navigateur), une source de données simulée reprend les
 valeurs des maquettes pour comparer le rendu ; elle n'est jamais incluse dans le build.
 Journal du backend : `SYSWATCH_LOG=info npm run tauri dev`.
+
+## Mises à jour
+
+L'AppImage se met à jour depuis **Paramètres → Mises à jour** : elle lit `latest.json`
+dans la dernière Release GitHub, vérifie la signature du fichier téléchargé avec la clé
+publique de `tauri.conf.json`, se remplace et redémarre. Aucune requête n'est faite tant
+que « Vérifier au démarrage » est désactivé (par défaut) et qu'on ne clique pas
+« Vérifier maintenant ». Les paquets .deb, .rpm et Arch se mettent à jour par le
+gestionnaire de paquets.
+
+Clé de signature : `~/.tauri/syswatch.key` (+ `.password`), hors du dépôt, à sauvegarder :
+sans elle, plus aucune mise à jour ne pourra être acceptée par les AppImage installées.
+`build-appimage.sh` l'utilise si elle est présente. Pour GitHub Actions, la copier dans
+les secrets du dépôt `TAURI_SIGNING_PRIVATE_KEY` et `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+
+Publier une version :
+
+    ./scripts/release.sh 0.2.0          # numéro partout, commit et tag v0.2.0
+    git push origin main v0.2.0         # .github/workflows/release.yml compile, signe, publie
 
 ## Service privilégié (ventilateurs)
 

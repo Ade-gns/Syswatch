@@ -1,0 +1,61 @@
+# Publie une version : `scripts/release.sh 0.2.0` puis `git push origin main v0.2.0`.
+# Compile l'AppImage, le .deb et le .rpm, les signe avec la clé de mise à jour et crée la
+# Release GitHub avec `latest.json`, que SysWatch lit pour se mettre à jour.
+#
+# Secrets du dépôt requis (Settings → Secrets and variables → Actions) :
+#   TAURI_SIGNING_PRIVATE_KEY           contenu de ~/.tauri/syswatch.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  contenu de ~/.tauri/syswatch.key.password
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    # Ubuntu 22.04 : glibc plus ancienne, donc AppImage compatible avec plus de distributions.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier que le tag correspond à la version
+        run: |
+          v=$(jq -r .version src-tauri/tauri.conf.json)
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME ≠ version v$v de tauri.conf.json"; exit 1; }
+
+      - name: Dépendances système
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+            libgtk-layer-shell-dev libssl-dev patchelf rpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Le strip embarqué par linuxdeploy ne connaît pas les binaires récents.
+          NO_STRIP: 'true'
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: SysWatch ${{ github.ref_name }}
+          releaseBody: |
+            Nouveautés : voir les commits depuis la version précédente.
+            AppImage : se met à jour depuis Paramètres → Mises à jour. Paquets .deb/.rpm/Arch : via le gestionnaire de paquets.
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
