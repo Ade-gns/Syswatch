@@ -1,0 +1,86 @@
+# Maintainer: Ade_GNS
+#
+# SysWatch pour Arch Linux et dérivées (CachyOS, EndeavourOS, Manjaro).
+#   cd packaging/arch && makepkg -si
+# Sources : dépôt GitHub (branche main). Pour compiler le dépôt local tel qu'il est
+# commité, sans pousser : SYSWATCH_SRC="git+file://$(git rev-parse --show-toplevel)" makepkg -si
+
+pkgname=syswatch
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Surveillance totale du PC : CPU, GPU, mémoire, disques et SMART, réseau, processus, ventilateurs, alertes, overlay de jeu"
+arch=('x86_64')
+url="https://github.com/Ade-gns/Syswatch"
+license=('MIT')
+depends=(
+  'webkit2gtk-4.1'          # moteur de rendu de Tauri
+  'gtk3'
+  'libayatana-appindicator' # icône de la zone de notification
+  'gtk-layer-shell'         # widget et overlay placés dans un coin sous Wayland
+  'udisks2'                 # santé SMART sans droits root
+  'polkit'                  # autorisation du service des ventilateurs
+  'dbus'
+  'glibc'
+  'gcc-libs'
+)
+makedepends=('git' 'cargo' 'nodejs' 'npm')
+optdepends=(
+  'mangohud: FPS dans l’overlay du mode jeu'
+  'power-profiles-daemon: profils Silencieux / Jeu / Performance sur les portables sans consigne pwm'
+  'nvidia-utils: mesures des GPU NVIDIA (NVML)'
+)
+install=syswatch.install
+# LTO de makepkg inutile (Rust gère la sienne) et paquet de débogage sans intérêt.
+options=('!lto' '!debug')
+source=("syswatch::${SYSWATCH_SRC:-git+${url}.git}#branch=main")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd syswatch
+  printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd syswatch
+  export CARGO_HOME="$srcdir/cargo-home"
+  npm ci --no-audit --no-fund
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd syswatch
+  export CARGO_HOME="$srcdir/cargo-home"
+  export CARGO_TARGET_DIR="$srcdir/target"
+  # beforeBuildCommand : interface (Vite) puis service privilégié en release.
+  npm run tauri build -- --no-bundle
+}
+
+check() {
+  cd syswatch
+  export CARGO_HOME="$srcdir/cargo-home"
+  export CARGO_TARGET_DIR="$srcdir/target"
+  # Tests sans matériel particulier (logique des ventilateurs et du service).
+  cargo test --release --locked -p syswatch-fans -p syswatch-helper
+}
+
+package() {
+  cd syswatch
+  local t="$srcdir/target/release"
+
+  install -Dm755 "$t/syswatch" "$pkgdir/usr/bin/syswatch"
+  install -Dm644 packaging/syswatch.desktop "$pkgdir/usr/share/applications/syswatch.desktop"
+  install -Dm644 src-tauri/icons/32x32.png "$pkgdir/usr/share/icons/hicolor/32x32/apps/syswatch.png"
+  install -Dm644 src-tauri/icons/128x128.png "$pkgdir/usr/share/icons/hicolor/128x128/apps/syswatch.png"
+  install -Dm644 src-tauri/icons/128x128@2x.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/syswatch.png"
+  install -Dm644 src-tauri/icons/icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/syswatch.png"
+
+  # Service privilégié des ventilateurs : démarré à la demande par D-Bus, autorisé par polkit.
+  install -Dm755 "$t/syswatch-helper" "$pkgdir/usr/lib/syswatch/syswatch-helper"
+  install -Dm644 packaging/syswatch-helper.service "$pkgdir/usr/lib/systemd/system/syswatch-helper.service"
+  install -Dm644 packaging/dev.syswatch.Helper1.service "$pkgdir/usr/share/dbus-1/system-services/dev.syswatch.Helper1.service"
+  install -Dm644 packaging/dev.syswatch.Helper1.conf "$pkgdir/usr/share/dbus-1/system.d/dev.syswatch.Helper1.conf"
+  install -Dm644 packaging/dev.syswatch.policy "$pkgdir/usr/share/polkit-1/actions/dev.syswatch.policy"
+
+  install -Dm644 README.md "$pkgdir/usr/share/doc/syswatch/README.md"
+  install -Dm644 packaging/README-helper.md "$pkgdir/usr/share/doc/syswatch/README-helper.md"
+}

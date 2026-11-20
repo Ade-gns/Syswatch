@@ -1,0 +1,15 @@
+# Les hooks de pacman rechargent déjà systemd et D-Bus après installation.
+
+post_install() {
+  echo ":: SysWatch : le service des ventilateurs démarre à la demande (journalctl -u syswatch-helper)."
+  echo ":: FPS de l'overlay : Paramètres → Mode jeu → « Configurer » (MangoHud)."
+}
+
+pre_upgrade() {
+  # Le service rend les ventilateurs au firmware en s'arrêtant ; il redémarrera à la demande.
+  systemctl stop syswatch-helper.service 2>/dev/null || true
+}
+
+pre_remove() {
+  systemctl stop syswatch-helper.service 2>/dev/null || true
+}

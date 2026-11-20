@@ -1,0 +1,30 @@
+pkgbase = syswatch
+	pkgdesc = Surveillance totale du PC : CPU, GPU, mémoire, disques et SMART, réseau, processus, ventilateurs, alertes, overlay de jeu
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/Ade-gns/Syswatch
+	install = syswatch.install
+	arch = x86_64
+	license = MIT
+	makedepends = git
+	makedepends = cargo
+	makedepends = nodejs
+	makedepends = npm
+	depends = webkit2gtk-4.1
+	depends = gtk3
+	depends = libayatana-appindicator
+	depends = gtk-layer-shell
+	depends = udisks2
+	depends = polkit
+	depends = dbus
+	depends = glibc
+	depends = gcc-libs
+	optdepends = mangohud: FPS dans l’overlay du mode jeu
+	optdepends = power-profiles-daemon: profils Silencieux / Jeu / Performance sur les portables sans consigne pwm
+	optdepends = nvidia-utils: mesures des GPU NVIDIA (NVML)
+	options = !lto
+	options = !debug
+	source = syswatch::git+https://github.com/Ade-gns/Syswatch.git#branch=main
+	sha256sums = SKIP
+
+pkgname = syswatch

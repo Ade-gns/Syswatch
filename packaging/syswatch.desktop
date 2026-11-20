@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SysWatch
+GenericName=Surveillance système
+Comment=Surveillance totale du PC : CPU, GPU, mémoire, disques, réseau, ventilateurs
+Exec=syswatch
+Icon=syswatch
+Terminal=false
+Categories=System;Monitor;
+Keywords=moniteur;température;ventilateur;processus;monitor;sensors;
+StartupWMClass=syswatch
